@@ -1,0 +1,65 @@
+betas_path: "../../data/03_primary/processed_betas/"
+mri_confounds_path: "../../data/03_primary/mri_confounds.csv"
+targets_path: "../../data/03_primary/filtered_behavioral.csv"
+dataset_path: "../../data/04_model_input/rdex_prediction_dataset.pkl"
+scopes_path: "../../data/04_model_input/rdex_prediction_scopes.pkl"
+
+model_comparisons: ['ridge', 'elastic', 'lasso']
+predictor_comparisons: ['incorrect_go', 'correct_go', 'correct_stop', 'incorrect_stop']
+
+model_results_path: "../../data/05_model_output/rdex_prediction/"
+
+
+plot_output_path: "../../data/06_reporting/rdex_prediction/"
+
+process_map: {
+    't0':'Go Process',
+    'EEA':'Go Process',
+    'B':'Go Process',
+    'k': 'Go Process',
+    'v0':'Go Process',
+    'vT':'Go Process',
+    'vF':'Go Process',
+    'gf':'Go Process',
+    'tf':'Stop Process',
+    'mu':'Stop Process',
+    'sigma':'Stop Process',
+    'tau':'Stop Process',
+    'SSRT':'SSRT',
+    'issrt':'SSRT',
+    'correct_go_rt':'Go Process',
+    'correct_go_mrt':'Go Process',
+    'correct_go_stdrt':'Go Process'
+}
+
+color_map: {
+  'Go Process': '#77DD77',
+  'Stop Process': 'lightcoral',
+  'SSRT': '#797EF6'
+}
+
+target_map: {
+    't0':'Non-decision time ($t_0$)',
+    'EEA':'Efficiency of evidence acc. (EEA)',
+    'B':'Go evidence threshold ($B$)',
+    'k': 'Perceptual Growth Rate ($g$)',
+    'v0':'Go urgency ($v_0$)',
+    'vT':'Go match rate ($v_+$)',
+    'vF':'Go mismatch rate ($v_-$)',
+    'gf':'Probability of Go failure ($p_{gf}$)',
+    'tf':'Probability of trigger failure ($p_{tf}$)',
+    'mu':'Stop ExGaussian normal mean  ($\mu$)',
+    'sigma':'Stop ExGaussian normal SD ($\sigma$)',
+    'tau':'Stop ExGaussian exponential mean ($\tau$)',
+    'SSRT':'Model derived SSRT',
+    'issrt':'Empirical SSRT',
+    'correct_go_rt':'Go choice accuracy',
+    'correct_go_mrt':'Correct-Go response time (RT)',
+    'correct_go_stdrt':'Correct-Go RT variability',
+    'correct_go': 'Correct Go',
+    'incorrect_go': 'Incorrect Go',
+    'correct_stop': 'Correct Stop',
+    'incorrect_stop': 'Incorrect Stop'
+}
+
+effectsize_plot_title: 'Vertexwise Regressor Model Fit Comparison\nRidge Regression'

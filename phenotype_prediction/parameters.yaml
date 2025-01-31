@@ -1,0 +1,86 @@
+phenotype_path: "../../data/03_primary/phenotypes.csv"
+behavioral_path: "../../data/03_primary/filtered_behavioral.csv"
+rdex_prediction_dataset_path: "../../data/04_model_input/rdex_prediction_dataset.pkl"
+
+phenotype_input_dir: "../../data/04_model_input/"
+
+covariates: ['sex', 'parent_education', 'parent_income', 'site', 'age']
+categorical: ['site', 'parent_education', 'parent_income', 'sex']
+
+phenotype_output_dir: "../../data/05_model_output/phenotype_prediction"
+
+
+phenotype_plot_name_keyed: {'bis_y_ss_bis_sum': 'BISBAS: BIS Sum',
+ 'bis_y_ss_bism_sum': 'BISBAS: BIS Sum (Modified)',
+ 'bis_y_ss_bas_rr': 'BISBAS: Reward Scale',
+ 'bis_y_ss_basm_rr': 'BISBAS: Reward Scale (Modified)',
+ 'bis_y_ss_bas_drive': 'BISBAS: Drive Scale',
+ 'bis_y_ss_basm_drive': 'BISBAS: Drive Scale (Modified)',
+ 'bis_y_ss_bas_fs': 'BISBAS: Fun-Seeking Scale',
+ 'upps_y_ss_negative_urgency': 'UPPS: Negative Urgency',
+ 'upps_y_ss_lack_of_planning': 'UPPS: Lack of Planning',
+ 'upps_y_ss_sensation_seeking': 'UPPS: Sensation Seeking',
+ 'upps_y_ss_positive_urgency': 'UPPS: Positive Urgency',
+ 'upps_y_ss_lack_of_perseverance': 'UPPS: Lacks Perserverence',
+ 'nihtbx_fluidcomp_uncorrected': 'NIHTB: Fluid Composite Score',
+ 'nihtbx_cryst_uncorrected': 'NIHTB: Crystallized Intel.',
+ 'nihtbx_totalcomp_uncorrected': 'NIHTB: Total Composite',
+ 'nihtbx_picvocab_uncorrected': 'NIHTB: Picture Vocab.',
+ 'nihtbx_flanker_uncorrected': 'NIHTB: Flanker Task',
+ 'nihtbx_list_uncorrected': 'NIHTB: List Sorting',
+ 'nihtbx_cardsort_uncorrected': 'NIHTB: Card Sorting',
+ 'nihtbx_pattern_uncorrected': 'NIHTB: Pattern Comparison',
+ 'nihtbx_picture_uncorrected': 'NIHTB: Picture Seq. Memory',
+ 'nihtbx_reading_uncorrected': 'NIHTB: Oral Reading Recognition',
+ 'cbcl_scr_syn_anxdep_r': 'CBCL: AnxDep Syndrome',
+ 'cbcl_scr_syn_withdep_r': 'CBCL: WithDep Syndrome',
+ 'cbcl_scr_syn_somatic_r': 'CBCL: Somatic Syndrome',
+ 'cbcl_scr_syn_social_r': 'CBCL: Social Syndrome',
+ 'cbcl_scr_syn_thought_r': 'CBCL: Thought Syndrome',
+ 'cbcl_scr_syn_attention_r': 'CBCL: Attention Syndrome',
+ 'cbcl_scr_syn_rulebreak_r': 'CBCL: RuleBreak Syndrome',
+ 'cbcl_scr_syn_aggressive_r': 'CBCL: Aggressive Syndrome',
+ 'cbcl_scr_syn_internal_r': 'CBCL: Internal Syndrome',
+ 'cbcl_scr_syn_external_r': 'CBCL: External Syndrome',
+ 'cbcl_scr_syn_totprob_r': 'CBCL: TotProb Syndrome',
+ 'cbcl_scr_dsm5_depress_r': 'CBCL: Depress DSM5',
+ 'cbcl_scr_dsm5_anxdisord_r': 'CBCL: AnxietyDx DSM5',
+ 'cbcl_scr_dsm5_somaticpr_r': 'CBCL: SomaticProb DSM5',
+ 'cbcl_scr_dsm5_adhd_r': 'CBCL: ADHD DSM5',
+ 'cbcl_scr_dsm5_opposit_r': 'CBCL: Opposit DSM5',
+ 'cbcl_scr_dsm5_conduct_r': 'CBCL: Conduct DSM5',
+ 'cbcl_scr_07_sct_r': 'CBCL: Sluggish Cog. Tempo',
+ 'cbcl_scr_07_ocd_r': 'CBCL: Obsessive-Compulsive Prob.',
+ 'cbcl_scr_07_stress_r': 'CBCL: Stress Scale'}
+
+
+target_map: {
+    't0':'Non-decision time ($t_0$)',
+    'EEA':'Efficiency of evidence acc. (EEA)',
+    'B':'Go evidence threshold ($B$)',
+    'k': 'Perceptual Growth Rate ($g$)',
+    'v0':'Go urgency ($v_0$)',
+    'vT':'Go match rate ($v_+$)',
+    'vF':'Go mismatch rate ($v_-$)',
+    'gf':'Probability of Go failure ($p_{gf}$)',
+    'tf':'Probability of trigger failure ($p_{tf}$)',
+    'mu':'Stop ExGaussian normal mean  ($\mu$)',
+    'sigma':'Stop ExGaussian normal SD ($\sigma$)',
+    'tau':'Stop ExGaussian exponential mean ($\tau$)',
+    'SSRT':'Model derived SSRT',
+    'issrt':'Empirical SSRT',
+    'correct_go_rt':'Go choice accuracy',
+    'correct_go_mrt':'Correct-Go response time (RT)',
+    'correct_go_stdrt':'Correct-Go RT variability',
+    'correct_go': 'Correct Go',
+    'incorrect_go': 'Incorrect Go',
+    'correct_stop': 'Correct Stop',
+    'incorrect_stop': 'Incorrect Stop'
+}
+
+
+grouping_map: {'empirical': 'Empirical Only', 'rdex + empirical': 'RDEX + Empirical', 'rdex': 'RDEX Only'}
+radar_plot_scopes: ['RDEX + Empirical', 'Empirical Only']
+
+
+phenotype_plot_output_dir: "../../data/06_reporting/phenotype_prediction"
