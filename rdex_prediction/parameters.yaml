@@ -62,4 +62,4 @@ target_map: {
     'incorrect_stop': 'Incorrect Stop'
 }
 
-effectsize_plot_title: 'Vertexwise Regressor Model Fit Comparison\nRidge Regression'
+effectsize_plot_title: 'Vertexwise Regressor Model Fit Comparison'

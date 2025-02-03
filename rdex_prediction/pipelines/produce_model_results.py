@@ -158,12 +158,13 @@ def assemble_feature_importance(
 ) -> None:
     """Implement gather_feature_importance."""
 
-    results_paths = glob.glob(params["model_results_path"] + "*ridge_results.pkl")
+    results_paths = glob.glob(params["model_results_path"] + f"*{model}_results.pkl")
     results_paths = [path for path in results_paths if "all" not in path]
     res = Parallel(n_jobs=n_jobs)(
         delayed(get_feature_importance)(r) for r in results_paths
     )
     pd.to_pickle(res, fpath + f"{model}_feature_importance.pkl")
+    print(f"Feature importance saved to {fpath}")
 
 
 def main():
@@ -171,10 +172,11 @@ def main():
     params = load_yaml("../parameters.yaml")
     results_path = params["model_results_path"]
 
-    assemble_summary(results_path, params, model="ridge")
-    assemble_feature_importance(results_path, params, model="ridge")
+    for model in ["ridge", "elastic"]:
 
-    produce_plots(params)
+        assemble_summary(results_path, params, model=model)
+        assemble_feature_importance(results_path, params, model=model)
+        produce_plots(params, model=model)
 
 
 if __name__ == "__main__":

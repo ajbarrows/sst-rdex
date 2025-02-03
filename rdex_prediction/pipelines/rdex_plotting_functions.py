@@ -74,11 +74,14 @@ def sort(df: pd.DataFrame) -> pd.DataFrame:
     return df
 
 
-def make_effect_compare_plot(df: pd.DataFrame, title: str, fpath: str) -> None:
+def make_effect_compare_plot(
+    df: pd.DataFrame, model: str, title: str, fpath: str
+) -> None:
     """Make effect compare plot.
     Args:
 
         df (pd.DataFrame): Dataframe.
+        model (str): Model ['ridge', 'elastic'].
         title (str): Title.
         fpath (str): File path.
     """
@@ -142,6 +145,12 @@ def make_effect_compare_plot(df: pd.DataFrame, title: str, fpath: str) -> None:
     ax.set_xticklabels(ax.get_xticklabels(), rotation=45, ha="right")
     ax.spines[["top", "right"]].set_visible(False)
 
+    if model == "ridge":
+        model = "Ridge Regression"
+    elif model == "elastic":
+        model = "Elastic Net Regression"
+
+    title = title + f"\n{model}"
     fig.subplots_adjust(top=0.9)
     fig.suptitle(title)
 
@@ -502,31 +511,32 @@ def make_fis_plots(
         )
 
 
-def produce_plots(params: dict):
+def produce_plots(params: dict, model: str):
+    """Produce plots.
+
+    Args:
+        params (dict): Parameters.
+        model (str): Model.
+    """
 
     process_map = params["process_map"]
     target_map = params["target_map"]
     color_map = params["color_map"]
 
-    model = "ridge"
+    summary = pd.read_csv(params["model_results_path"] + f"{model}_models_summary.csv")
+    summary = relabel_plotting_data(summary, process_map, target_map, color_map)
+    summary = sort(summary)
 
-    for model in ["ridge"]:
+    make_effect_compare_plot(
+        summary,
+        model,
+        params["effectsize_plot_title"],
+        params["plot_output_path"] + f"{model}_effectsize_plot",
+    )
 
-        summary = pd.read_csv(
-            params["model_results_path"] + f"{model}_models_summary.csv"
-        )
-        summary = relabel_plotting_data(summary, process_map, target_map, color_map)
-        summary = sort(summary)
+    fis = pd.read_pickle(
+        params["model_results_path"] + f"{model}_feature_importance.pkl"
+    )
+    best_fis, avg_fis = gather_fis(fis)
 
-        make_effect_compare_plot(
-            summary,
-            params["effectsize_plot_title"],
-            params["plot_output_path"] + f"{model}_effectsize_plot",
-        )
-
-        fis = pd.read_pickle(
-            params["model_results_path"] + f"{model}_feature_importance.pkl"
-        )
-        best_fis, avg_fis = gather_fis(fis)
-
-        make_fis_plots(avg_fis, best_fis, target_map, model=model)
+    make_fis_plots(avg_fis, best_fis, target_map, model=model)

@@ -2,10 +2,10 @@
 #SBATCH --job-name=rdex_res
 #SBATCH --output=logs/%x_%j.out
 #SBATCH --error=logs/%x_%j.err
-#SBATCH --time=00:30:00
+#SBATCH --time=00:60:00
 #SBATCH --partition=general
 #SBATCH --ntasks=1
-#SBATCH --cpus-per-task=2
+#SBATCH --cpus-per-task=4
 #SBATCH --mem=128G
 #SBATCH --mail-type=ALL
 
