@@ -1,6 +1,10 @@
 % Define the directory containing the .mat files
+// inputDir = '../../data/01_raw/abcd-sync/5.0/imaging_concat/vertexwise/tfmri'; % Update this path
 inputDir = '../../data/01_raw/abcd-sync/6.0/imaging_concat/vertexwise/tfmri'; % Update this path
-outputDir = '../../data/02_intermediate/'; % Update this path
+
+
+// outputDir = '../../data/02_intermediate/betas/r5'; % Update this path
+outputDir = '../../data/02_intermediate/betas/r6'; % Update this path
 
 % Create the output directory if it does not exist
 if ~exist(outputDir, 'dir')

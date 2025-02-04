@@ -4,7 +4,9 @@ timepoints: ['baseline_year_1_arm_1']
 # Behavioral
 sst_behavioral_path: "../../data/01_raw/tabular/core/imaging/mri_y_tfmr_sst_beh.csv"
 rdex_map_path: "../../data/01_raw/SST_MAPS_base_r3.csv"
+rdex_map_notf_path: "../../data/01_raw/baseline_notf_SST_MAPS.csv"
 filtered_behavioral_path: "../../data/03_primary/filtered_behavioral.csv"
+filtered_behavioral_no_tf_path: "../../data/03_primary/filtered_behavioral_no_tf.csv"
 
 beh_rt_vars: {
     'tfmri_sst_all_beh_crgo_mrt': 'correct_go_mrt',
@@ -13,17 +15,27 @@ beh_rt_vars: {
 }
 
 # MRI
-mri_r1_dof_path: "../../data/01_raw/abcd-sync/6.0/tabulated/mrisstr1b101.csv"
-mri_r2_dof_path: "../../data/01_raw/abcd-sync/6.0/tabulated/mrisstr2bw01.csv"
-vol_info_path: "../../data/02_intermediate/vol_info.parquet"
+mri_r1_dof_path_r5: "../../data/01_raw/abcd-sync/5.0/tabulated/mrisstr1b101.csv"
+mri_r2_dof_path_r5: "../../data/01_raw/abcd-sync/5.0/tabulated/mrisstr2bw01.csv"
+
+mri_r1_dof_path_r6: "../../data/01_raw/abcd-sync/6.0/tabulated/mrisstr1b101.csv"
+mri_r2_dof_path_r6: "../../data/01_raw/abcd-sync/6.0/tabulated/mrisstr2bw01.csv"
+
+vol_info_path_r5: "../../data/02_intermediate/betas/r5/vol_info.parquet"
+vol_info_path_r6: "../../data/02_intermediate/betas/r6/vol_info.parquet"
 mri_qc_path: "../../data/01_raw/tabular/core/imaging/mri_y_qc_incl.csv"
 
 sst_conditions: ['cs', 'cg', 'is', 'ig']
 runs: ['r01', 'r02']
 hemispheres: ['lh', 'rh']
-beta_input_dir: "../../data/02_intermediate/"
-beta_output_dir: "../../data/02_intermediate/avg_betas/"
-processed_beta_dir: "../../data/03_primary/processed_betas/"
+
+
+beta_input_dir_r5: "../../data/02_intermediate/betas/r5/"
+beta_input_dir_r6: "../../data/02_intermediate/betas/r6/"
+beta_output_dir: "../../data/02_intermediate/avg_betas/r5/"
+beta_output_dir_r6: "../../data/02_intermediate/avg_betas/r6/"
+processed_beta_dir_r5: "../../data/03_primary/processed_betas/r5/"
+processed_beta_dir_r6: "../../data/03_primary/processed_betas/r6/"
 
 motion_path: "../../data/01_raw/abcd-sync/6.0/tabulated/img/mriqcrp203.csv"
 scanner_path: "../../data/01_raw/abcd-sync/6.0/tabulated/img/abcd_mri01.csv"

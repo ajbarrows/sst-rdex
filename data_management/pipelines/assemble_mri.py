@@ -145,29 +145,36 @@ def load_mri_confounds(
 def main():
     params = load_yaml("../parameters.yaml")
 
-    dof = load_degrees_of_freedom(params["mri_r1_dof_path"], params["mri_r2_dof_path"])
-    mri_qc_df = load_mri_qc(params["mri_qc_path"])
-    combine_betas(
-        params["sst_conditions"],
-        params["hemispheres"],
-        dof,
-        params["beta_input_dir"],
-        params["beta_output_dir"],
-        params["vol_info_path"],
-    )
+    for release in ["r5", "r5"]:
+        dof = load_degrees_of_freedom(
+            params["mri_r1_dof_path"], params["mri_r2_dof_path"]
+        )
+        mri_qc_df = load_mri_qc(params["mri_qc_path"])
 
-    filter_avg_betas(
-        mri_qc_df,
-        params["sst_conditions"],
-        params["filtered_behavioral_path"],
-        params["beta_output_dir"],
-        params["processed_beta_dir"],
-    )
+        combine_betas(
+            params["sst_conditions"],
+            params["hemispheres"],
+            dof,
+            params["beta_input_dir_{release}"],
+            params["beta_output_dir_{release}"],
+            params["vol_info_path_{release}"],
+        )
 
-    mri_confounds = load_mri_confounds(
-        params["motion_path"], params["scanner_path"], params["timepoints"]
-    )
-    save_csv(mri_confounds, params["mri_confounds_output_dir"] + "mri_confounds.csv")
+        filter_avg_betas(
+            mri_qc_df,
+            params["sst_conditions"],
+            params["filtered_behavioral_path"],
+            params["beta_output_dir_{release}"],
+            params["processed_beta_dir_{release}"],
+        )
+
+        mri_confounds = load_mri_confounds(
+            params["motion_path"], params["scanner_path"], params["timepoints"]
+        )
+        save_csv(
+            mri_confounds,
+            params["mri_confounds_output_dir"] + f"mri_confounds{release}.csv",
+        )
 
 
 if __name__ == "__main__":

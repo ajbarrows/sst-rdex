@@ -18,6 +18,7 @@ def fit(
     fpath: str,
     n_cores: int,
     random_state: int,
+    append: str = None,
 ) -> None:
 
     if condition == "all":
@@ -29,6 +30,9 @@ def fit(
     res = fit_model(
         ds, scopes, model, complete=complete, n_cores=n_cores, random_state=random_state
     )
+
+    if append is not None:
+        fpath = fpath + "_" + append
 
     save_model_results(res, condition, model, fpath)
 
@@ -63,6 +67,8 @@ def main():
         help="Number of cores to use. Default: -1 (all)",
     )
     parser.add_argument("--random_state", type=int, default=42, help="Random state.")
+
+    parser.add_argument("--append", type=str, default="", help="Append to file name")
     args = parser.parse_args()
 
     ds = pd.read_pickle(args.dataset)
@@ -84,6 +90,7 @@ def main():
         fpath=args.fpath,
         n_cores=args.n_cores,
         random_state=args.random_state,
+        append=args.append,
     )
 
 

@@ -36,7 +36,7 @@ def load_rdex_map(
     """
     rdex_map = pd.read_csv(rdex_map_path)
     rdex_map = rdex_map.rename(columns={"subjectkey": "src_subject_id"})
-    rdex_map = rdex_map.drop(columns=exclude_vars)
+    rdex_map = rdex_map.drop(columns=[v for v in exclude_vars if v in rdex_map.columns])
     rdex_map.insert(1, "eventname", tpt)
 
     return rdex_map.set_index(["src_subject_id", "eventname"])
@@ -73,3 +73,7 @@ def main():
     rdex_map = load_rdex_map(params["rdex_map_path"])
     filtered_behavioral = filter_behavioral(rdex_map, sst_behavioral)
     save_csv(filtered_behavioral, params["filtered_behavioral_path"])
+
+    rdex_map_no_tf = load_rdex_map(params["rdex_map_notf_path"])
+    filtered_behavioral_no_tf = filter_behavioral(rdex_map_no_tf, sst_behavioral)
+    save_csv(filtered_behavioral_no_tf, params["filtered_behavioral_no_tf_path"])

@@ -10,7 +10,6 @@ import seaborn as sns
 from joblib import Parallel, delayed
 from itertools import repeat
 
-
 from matplotlib.colors import Normalize
 from matplotlib.cm import ScalarMappable
 from matplotlib.colorbar import make_axes
@@ -177,8 +176,6 @@ def broadcast_to_fsaverage(fis_agg: pd.Series, n_vertices=10242 + 1) -> pd.DataF
         lh = df[df["hemisphere"] == "lh"].drop(columns="hemisphere")
         rh = df[df["hemisphere"] == "rh"].drop(columns="hemisphere")
 
-        # idx = ['correct', 'condition']
-        # return lh.set_index(idx), rh.set_index(idx)
         return lh, rh
 
     fis = fis_agg.copy()

@@ -1,4 +1,4 @@
-import os
+import glob
 import pandas as pd
 import BPt as bp
 
@@ -15,10 +15,10 @@ def load_betas(betas_path: str) -> pd.DataFrame:
     Returns:
         pd.DataFrame: Partitioned betas.
     """
-    files = os.listdir(betas_path)
+    files = glob.glob(betas_path + "*.parquet")
     df = pd.DataFrame()
     for f in files:
-        tmp = pd.read_parquet(betas_path + f)
+        tmp = pd.read_parquet(f)
         df = pd.concat([df, tmp], axis=1)
     return df
 
@@ -105,10 +105,17 @@ def main():
     params = load_yaml("../parameters.yaml")
     betas = load_betas(params["betas_path"])
     mri_confounds = load_tabular(params["mri_confounds_path"])
-    targets = load_tabular(params["targets_path"])
     scopes = gather_scopes(betas, mri_confounds, params["scopes_path"])
+
+    targets = load_tabular(params["targets_path"])
+    target_no_tf = load_tabular(params["targets_no_tf_path"])
+
     make_bpt_dataset(
         betas, scopes, mri_confounds, targets, fpath=params["dataset_path"]
+    )
+
+    make_bpt_dataset(
+        betas, scopes, mri_confounds, target_no_tf, fpath=params["dataset_no_tf_path"]
     )
 
 
