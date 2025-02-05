@@ -1,6 +1,6 @@
 import pandas as pd
 
-from abcd_tools.utils.io import load_tabular, save_csv
+from abcd_tools.utils.io import load_tabular
 from abcd_tools.utils.ConfigLoader import load_yaml
 from abcd_tools.image.preprocess import compute_average_betas
 
@@ -21,9 +21,9 @@ def load_degrees_of_freedom(r1_fpath: str, r2_fpath: str) -> pd.DataFrame:
         pd.DataFrame: DOFs for runs 1 and 2
     """
     r1_dof = load_tabular(r1_fpath, cols=["tfmri_sstr1_beta_dof"])
-    load_tabular(r2_fpath, cols=["tfmri_sstr2_beta_dof"])
+    r2_dof = load_tabular(r2_fpath, cols=["tfmri_sstr2_beta_dof"])
 
-    return pd.concat([r1_dof, r1_dof], axis=1)
+    return pd.concat([r1_dof, r2_dof], axis=1)
 
 
 def concatenate_hemispheres(lh: pd.DataFrame, rh: pd.DataFrame) -> pd.DataFrame:
@@ -41,20 +41,37 @@ def concatenate_hemispheres(lh: pd.DataFrame, rh: pd.DataFrame) -> pd.DataFrame:
     return pd.concat([lh, rh], axis=1)
 
 
+def parse_vol_info(vol_info: pd.DataFrame) -> pd.DataFrame:
+
+    TPT_MAP = {
+        "baseline": "baseline_year_1_arm_1",
+        "2year": "2_year_follow_up_y_arm_1",
+        "4year": "4_year_follow_up_y_arm_1",
+        "6year": "6_year_follow_up_y_arm_1",
+    }
+
+    tmp = vol_info.iloc[:, 0].str.split("_", expand=True)[[2, 3]]
+    tmp.columns = ["src_subject_id", "eventname"]
+    tmp["src_subject_id"] = "NDAR_" + tmp["src_subject_id"]
+    tmp["eventname"] = tmp["eventname"].map(TPT_MAP)
+
+    return tmp
+
+
 def combine_betas(
-    sst_conditions: list,
+    sst_conditions: dict,
     hemispheres: list,
     dof: pd.DataFrame,
     beta_input_dir: str,
     beta_output_dir: str,
     vol_info_path: str,
+    release: str = "r5",
 ) -> None:
     """Combine betas for SST conditions
 
     Args:
-        sst_conditions (list): SST conditions
+        sst_conditions (dict): SST conditions
         hemispheres (list): Hemispheres
-        dof (pd.DataFrame): Degrees of freedom
         beta_input_dir (str): Directory containing beta data
         beta_output_dir (str): Directory to save combined betas
         vol_info_path (str): Path to volume information
@@ -64,17 +81,31 @@ def combine_betas(
     """
 
     vol_info = pd.read_parquet(vol_info_path)
+    if release == "r6":
+        vol_info = parse_vol_info(vol_info)
 
-    for condition in sst_conditions:
+    for condition in sst_conditions.keys():
         betas = {}
         for hemi in hemispheres:
-            run1_fpath = f"{beta_input_dir}sst_{condition}_beta_r01_{hemi}.parquet"
-            run2_fpath = f"{beta_input_dir}sst_{condition}_beta_r02_{hemi}.parquet"
+
+            if release == "r5":
+                run1_fpath = (
+                    f"{beta_input_dir}SST_1_{sst_conditions[condition]}-{hemi}.parquet"
+                )
+                run2_fpath = (
+                    f"{beta_input_dir}SST_2_{sst_conditions[condition]}-{hemi}.parquet"
+                )
+            elif release == "r6":
+                run1_fpath = f"{beta_input_dir}sst_{condition}_beta_r01_{hemi}.parquet"
+                run2_fpath = f"{beta_input_dir}sst_{condition}_beta_r02_{hemi}.parquet"
 
             run1 = pd.read_parquet(run1_fpath)
             run2 = pd.read_parquet(run2_fpath)
 
-            avg_betas = compute_average_betas(run1, run2, vol_info, dof)
+            name = sst_conditions[condition]
+            avg_betas = compute_average_betas(
+                run1, run2, vol_info, dof, name=name, release=release
+            )
 
             betas[hemi] = avg_betas
 
@@ -145,9 +176,10 @@ def load_mri_confounds(
 def main():
     params = load_yaml("../parameters.yaml")
 
-    for release in ["r5", "r5"]:
+    # for release in ["r5", "r6"]:
+    for release in ["r5"]:
         dof = load_degrees_of_freedom(
-            params["mri_r1_dof_path"], params["mri_r2_dof_path"]
+            params[f"mri_r1_dof_path_{release}"], params[f"mri_r2_dof_path_{release}"]
         )
         mri_qc_df = load_mri_qc(params["mri_qc_path"])
 
@@ -155,26 +187,27 @@ def main():
             params["sst_conditions"],
             params["hemispheres"],
             dof,
-            params["beta_input_dir_{release}"],
-            params["beta_output_dir_{release}"],
-            params["vol_info_path_{release}"],
+            params[f"beta_input_dir_{release}"],
+            params[f"beta_output_dir_{release}"],
+            params[f"vol_info_path_{release}"],
+            release=release,
         )
 
         filter_avg_betas(
             mri_qc_df,
-            params["sst_conditions"],
+            params["sst_conditions"].keys(),
             params["filtered_behavioral_path"],
-            params["beta_output_dir_{release}"],
-            params["processed_beta_dir_{release}"],
+            params[f"beta_output_dir_{release}"],
+            params[f"processed_beta_dir_{release}"],
         )
 
-        mri_confounds = load_mri_confounds(
-            params["motion_path"], params["scanner_path"], params["timepoints"]
-        )
-        save_csv(
-            mri_confounds,
-            params["mri_confounds_output_dir"] + f"mri_confounds{release}.csv",
-        )
+    # mri_confounds = load_mri_confounds(
+    #     params["motion_path"], params["scanner_path"], params["timepoints"]
+    # )
+    # save_csv(
+    #     mri_confounds,
+    #     params["mri_confounds_output_dir"] + "mri_confounds.csv",
+    # )
 
 
 if __name__ == "__main__":

@@ -1,6 +1,8 @@
 # ignore everything in the following folders
 data/**
 
+*.html
+
 logs/
 
 # except their sub-folders
