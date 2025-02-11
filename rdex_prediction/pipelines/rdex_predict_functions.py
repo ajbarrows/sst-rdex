@@ -86,7 +86,9 @@ def fit_model(
     return results
 
 
-def save_model_results(res: bp.CompareDict, name: str, model: str, path: str) -> None:
+def save_model_results(
+    res: bp.CompareDict, name: str, model: str, path: str, append: bool
+) -> None:
     """Save model results to disk.
 
     Args:
@@ -95,6 +97,10 @@ def save_model_results(res: bp.CompareDict, name: str, model: str, path: str) ->
         model (str): Model type.
         path (str): Path to save results.
     """
+
+    if append:
+        name = f"{name}_{append}"
+
     pd.to_pickle(res, f"{path}/{name}_{model}_results.pkl")
 
     summary = res.summary()

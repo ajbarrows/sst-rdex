@@ -31,10 +31,7 @@ def fit(
         ds, scopes, model, complete=complete, n_cores=n_cores, random_state=random_state
     )
 
-    if append is not None:
-        fpath = fpath + "_" + append
-
-    save_model_results(res, condition, model, fpath)
+    save_model_results(res, condition, model, fpath, append=append)
 
 
 def main():

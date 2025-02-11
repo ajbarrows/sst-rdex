@@ -24,7 +24,7 @@ def load_betas(betas_path: str) -> pd.DataFrame:
 
 
 def gather_scopes(
-    betas: pd.DataFrame, mri_confounds: pd.DataFrame, fpath: str = None
+    betas: pd.DataFrame, mri_confounds: pd.DataFrame, fpath: str = None, roi=False
 ) -> dict:
     """Assign names to predictors based on SST condition, plus covariates.
 
@@ -36,14 +36,26 @@ def gather_scopes(
     Returns:
         dict: Scopes
     """
-    unique_regressors = set([c.rsplit("_", 2)[0] for c in betas.columns])
     scopes = {}
 
-    for u in unique_regressors:
-        scopes[u] = []
-        for c in betas.columns:
-            if u == "_".join(c.split("_", 2)[:2]):
-                scopes[u].append(c)
+    if roi:
+        r = set(["_".join(c.rsplit("_", 5)[1:3]) for c in betas.columns])
+        unique_regressors = [reg for reg in r if "beta" not in reg]
+
+        for u in unique_regressors:
+            scopes[u] = []
+            for c in betas.columns:
+                if u == "_".join(c.rsplit("_", 5)[1:3]):
+                    scopes[u].append(c)
+
+    else:
+        unique_regressors = set([c.rsplit("_", 2)[0] for c in betas.columns])
+
+        for u in unique_regressors:
+            scopes[u] = []
+            for c in betas.columns:
+                if u == "_".join(c.split("_", 2)[:2]):
+                    scopes[u].append(c)
 
     scopes["mri_confounds"] = mri_confounds.columns
 
@@ -103,19 +115,46 @@ def make_bpt_dataset(
 
 def main():
     params = load_yaml("../parameters.yaml")
-    betas = load_betas(params["betas_path"])
+
+    vertex_betas = load_betas(params["betas_path"])
+    roi_betas = pd.read_parquet(params["roi_betas_path"])
+
     mri_confounds = load_tabular(params["mri_confounds_path"])
-    scopes = gather_scopes(betas, mri_confounds, params["scopes_path"])
+
+    vertex_scopes = gather_scopes(vertex_betas, mri_confounds, params["scopes_path"])
+    roi_scopes = gather_scopes(
+        roi_betas, mri_confounds, params["roi_scopes_path"], roi=True
+    )
 
     targets = load_tabular(params["targets_path"])
     target_no_tf = load_tabular(params["targets_no_tf_path"])
 
     make_bpt_dataset(
-        betas, scopes, mri_confounds, targets, fpath=params["dataset_path"]
+        vertex_betas,
+        vertex_scopes,
+        mri_confounds,
+        targets,
+        fpath=params["dataset_path"],
     )
 
     make_bpt_dataset(
-        betas, scopes, mri_confounds, target_no_tf, fpath=params["dataset_no_tf_path"]
+        vertex_betas,
+        vertex_scopes,
+        mri_confounds,
+        target_no_tf,
+        fpath=params["dataset_no_tf_path"],
+    )
+
+    make_bpt_dataset(
+        roi_betas, roi_scopes, mri_confounds, targets, fpath=params["roi_dataset_path"]
+    )
+
+    make_bpt_dataset(
+        roi_betas,
+        roi_scopes,
+        mri_confounds,
+        target_no_tf,
+        fpath=params["roi_dataset_no_tf_path"],
     )
 
 

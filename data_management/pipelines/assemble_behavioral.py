@@ -77,3 +77,7 @@ def main():
     rdex_map_no_tf = load_rdex_map(params["rdex_map_notf_path"])
     filtered_behavioral_no_tf = filter_behavioral(rdex_map_no_tf, sst_behavioral)
     save_csv(filtered_behavioral_no_tf, params["filtered_behavioral_no_tf_path"])
+
+
+if __name__ == "__main__":
+    main()

@@ -21,6 +21,7 @@ mri_r2_dof_path_r5: "../../data/01_raw/abcd-sync/5.0/tabulated/img/mrisstr2bw01.
 mri_r1_dof_path_r6: "../../data/01_raw/abcd-sync/6.0/tabulated/img/mrisstr1bw01.csv"
 mri_r2_dof_path_r6: "../../data/01_raw/abcd-sync/6.0/tabulated/img/mrisstr2bw01.csv"
 
+vol_info_path_r4: "../../data/02_intermediate/betas/r4/vol_info.parquet"
 vol_info_path_r5: "../../data/02_intermediate/betas/r5/vol_info.parquet"
 vol_info_path_r6: "../../data/02_intermediate/betas/r6/vol_info.parquet"
 mri_qc_path: "../../data/01_raw/tabular/core/imaging/mri_y_qc_incl.csv"
@@ -34,7 +35,15 @@ sst_conditions: {
 runs: ['r01', 'r02']
 hemispheres: ['lh', 'rh']
 
+roi_base_path: "../../data/01_raw/tabular/core/imaging/"
 
+sst_csvcg_names: ['correct.stop.vs.correct.go_']
+sst_cgvfx_names: ['correct.go.vs.fixation_']
+sst_isvcg_names: ['incorrect.stop.vs.correct.go_']
+sst_igvcg_names: ['incorrect.go.vs.correct.go_']
+
+
+beta_input_dir_r4: "../../data/02_intermediate/betas/r4/"
 beta_input_dir_r5: "../../data/02_intermediate/betas/r5/"
 beta_input_dir_r6: "../../data/02_intermediate/betas/r6/"
 beta_output_dir_r5: "../../data/02_intermediate/avg_betas/r5/"
@@ -45,6 +54,8 @@ processed_beta_dir_r6: "../../data/03_primary/processed_betas/r6/"
 motion_path: "../../data/01_raw/abcd-sync/6.0/tabulated/img/mriqcrp203.csv"
 scanner_path: "../../data/01_raw/abcd-sync/6.0/tabulated/img/abcd_mri01.csv"
 mri_confounds_output_dir: "../../data/03_primary/"
+
+roi_betas_output_dir: "../../data/03_primary/roi_betas.parquet"
 
 # Phenotype
 

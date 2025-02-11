@@ -1,10 +1,16 @@
 betas_path: "../../data/03_primary/processed_betas/"
-mri_confounds_path: "../../data/03_primary/mri_confounds_r5.csv"
+roi_betas_path: "../../data/03_primary/roi_betas.parquet"
+mri_confounds_path: "../../data/03_primary/mri_confounds.csv"
 targets_path: "../../data/03_primary/filtered_behavioral.csv"
-targets_no_tf: "../../data/03_primary/filtered_behavioral_no_tf.csv"
+targets_no_tf_path: "../../data/03_primary/filtered_behavioral_no_tf.csv"
 dataset_path: "../../data/04_model_input/rdex_prediction_dataset.pkl"
 dataset_no_tf_path: "../../data/04_model_input/rdex_prediction_dataset_no_tf.pkl"
+
+roi_dataset_path: "../../data/04_model_input/rdex_prediction_roi_dataset.pkl"
+roi_dataset_no_tf_path: "../../data/04_model_input/rdex_prediction_roi_dataset_no_tf.pkl"
+
 scopes_path: "../../data/04_model_input/rdex_prediction_scopes.pkl"
+roi_scopes_path: "../../data/04_model_input/rdex_prediction_roi_scopes.pkl"
 
 model_comparisons: ['ridge', 'elastic', 'lasso']
 predictor_comparisons: ['incorrect_go', 'correct_go', 'correct_stop', 'incorrect_stop']
