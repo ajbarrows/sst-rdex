@@ -34,6 +34,7 @@ def relabel_plotting_data(df, process_map, target_map, color_map):
         pd.DataFrame: Relabeled dataframe
     """
 
+    df["scope"] = df["scope"].fillna("all")
     df = df[df["scope"] != "cov + mri_confounds"]
     df["scope"] = df["scope"].str.replace("cov \+ ", "", regex=True)
     df.loc[:, "process"] = df["target"]
@@ -66,7 +67,9 @@ def sort(df: pd.DataFrame) -> pd.DataFrame:
         df.set_index("target")
         #   .drop(columns=['test_r2'])
         .join(avg)
-        .sort_values(by=["process", "avg_mean"], ascending=[True, False])
+        .sort_values(
+            by=["process", "avg_mean", "mean_scores_r2"], ascending=[True, False, False]
+        )
         .reset_index()
         .drop(columns=["avg_mean", "avg_std"])
     )
@@ -303,6 +306,39 @@ def draw_plot(lh, rh, ax, mode, cmap="bwr", vmin=None, vmax=None, avg_method=abs
         )
 
 
+def absmax(x):
+    idx = np.argmax(np.abs(x))
+    return x[idx]
+
+
+def format_rois(fis_agg: dict, correct, condition):
+
+    tmp = fis_agg.copy()
+
+    tmp.index = tmp.index.str.replace("tfmri_sst_all_", "")
+    tmp.index = tmp.index.str.split("_beta_", expand=True)
+
+    tmp = tmp.unstack(level=1)
+    tmp.index = tmp.index.str.split("_", expand=True)
+    tmp.reset_index(names=["correct", "condition"], inplace=True)
+
+    tmp = tmp[(tmp["correct"] == correct) & (tmp["condition"] == condition)]
+
+    return tmp
+
+
+def make_roi_model_plot(plot_df, target, ax, vmin, vmax, cmap="bwr"):
+
+    fetch_atlas_surf_destrieux()
+    surf_ref = SurfRef(space="fsaverage5", parc="destr")
+
+    to_plot = surf_ref.get_hemis_plot_vals(plot_df)
+
+    ntp.plot(
+        to_plot, threshold=0, ax=ax, cmap=cmap, vmin=vmin, vmax=vmax, colorbar=False
+    )
+
+
 def make_collage_plot(
     fis_agg: dict,
     target,
@@ -313,32 +349,24 @@ def make_collage_plot(
     model="enet",
     fontsize=25,
 ):
-    """Make collage plot.
-
-    Args:
-        fis_agg (dict): Feature importance.
-        target (str): Target.
-        target_map (dict): Target map.
-        basepath (str, optional): Base path.
-        agg (str, optional): Aggregation. Defaults to 'avg_fis'.
-        mode (str, optional): Mode. Defaults to 'vertex'.
-        model (str, optional): Model. Defaults to 'enet'.
-        fontsize (int, optional): Font size. Defaults to 25.
-    """
 
     def _format_for_plotting(
         fis: pd.DataFrame, correct: str, condition: str
     ) -> pd.DataFrame:
-        """Limit to condition."""
         tmp = fis[(fis["correct"] == correct) & (fis["condition"] == condition)]
+
         tmp = tmp.drop(columns=["correct", "condition"])
         tmp[np.isnan(tmp)] = 0
         return tmp
 
-    lh, rh = broadcast_to_fsaverage(fis_agg[target])
+    if "roi" not in model:
+        lh, rh = broadcast_to_fsaverage(fis_agg[target])
+        conditions = pd.unique(lh["condition"])
+        n_cond = conditions.shape[0]
+    else:
+        conditions = ["go", "stop"]
+        n_cond = len(conditions)
 
-    conditions = pd.unique(lh["condition"])
-    n_cond = conditions.shape[0]
     directions = ["correct", "", "incorrect"]
     width_ratios = [1]
     height_ratios = [100, 1, 100]
@@ -380,16 +408,24 @@ def make_collage_plot(
         middle = axs[1, cnt]
         bottom = axs[2, cnt]
 
-        lh_correct = _format_for_plotting(lh, "correct", condition)
-        rh_correct = _format_for_plotting(rh, "correct", condition)
-        draw_plot(lh_correct, rh_correct, top, mode, vmin=vmin, vmax=vmax)
+        if mode == "roi_model":
+            correct = format_rois(fis_agg[target], "correct", condition)
+            make_roi_model_plot(correct, target, top, vmin, vmax)
+
+            incorrect = format_rois(fis_agg[target], "incorrect", condition)
+            make_roi_model_plot(incorrect, target, bottom, vmin, vmax)
+
+        else:
+
+            lh_correct = _format_for_plotting(lh, "correct", condition)
+            rh_correct = _format_for_plotting(rh, "correct", condition)
+            draw_plot(lh_correct, rh_correct, top, mode, vmin=vmin, vmax=vmax)
+
+            lh_incorrect = _format_for_plotting(lh, "incorrect", condition)
+            rh_incorrect = _format_for_plotting(rh, "incorrect", condition)
+            draw_plot(lh_incorrect, rh_incorrect, bottom, mode, vmin=vmin, vmax=vmax)
 
         middle.set_axis_off()  # make blank space
-
-        lh_incorrect = _format_for_plotting(lh, "incorrect", condition)
-        rh_incorrect = _format_for_plotting(rh, "incorrect", condition)
-        draw_plot(lh_incorrect, rh_incorrect, bottom, mode, vmin=vmin, vmax=vmax)
-
         top.set_title(condition, fontsize=fontsize)
         cnt += 1
 
@@ -487,7 +523,8 @@ def make_fis_plots(
         basepath (str, optional): Base path.
     """
 
-    modes = ["vertex", "roi"]
+    # modes = ["vertex", "roi", "roi_model"]
+    modes = ["roi_model"]
 
     for mode in modes:
         plot_mode(

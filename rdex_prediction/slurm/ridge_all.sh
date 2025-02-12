@@ -2,11 +2,11 @@
 #SBATCH --job-name=ridge_all
 #SBATCH --output=logs/%x_%j.out
 #SBATCH --error=logs/%x_%j.err
-#SBATCH --time=48:00:00
-#SBATCH --partition=week
+#SBATCH --time=30:00:00
+#SBATCH --partition=general
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=8
-#SBATCH --mem=180G
+#SBATCH --mem=512G
 #SBATCH --mail-type=ALL
 
 echo "Submission Dir:  ${SLURM_SUBMIT_DIR}"

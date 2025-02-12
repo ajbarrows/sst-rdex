@@ -23,7 +23,11 @@ def join_test_prediction(
     Returns:
         pd.DataFrame: Joined dataframes.
     """
-    idx = ["target", "scope"]
+    if "scope" in results_summary.columns:
+        idx = ["target", "scope"]
+    else:
+        idx = "target"
+
     return results_summary.join(test_prediction.set_index(idx), on=idx, how="left")
 
 
@@ -92,6 +96,12 @@ def assemble_summary(
         delayed(get_test_prediction)(r) for r in results_paths
     )
     summary = pd.concat([pd.read_csv(p) for p in summary_paths])
+
+    if "scope" not in summary.columns:
+        summary["scope"] = "all"
+
+    summary["scope"] = summary["scope"].fillna("all")
+
     summary = join_test_prediction(summary, pd.concat(test_predictions))
 
     summary.to_csv(results_path + f"{model}_models_summary.csv")
@@ -99,7 +109,9 @@ def assemble_summary(
     return summary
 
 
-def remove_nonfeatures(coefs: pd.Series, filter_strings=["mri", "iqc"]) -> pd.Series:
+def remove_nonfeatures(
+    coefs: pd.Series, filter_strings=["serial", "motion"]
+) -> pd.Series:
     return coefs[~coefs.index.str.contains("|".join(filter_strings))]
 
 
@@ -159,6 +171,7 @@ def assemble_feature_importance(
     """Implement gather_feature_importance."""
 
     results_paths = glob.glob(params["model_results_path"] + f"*{model}_results.pkl")
+
     results_paths = [path for path in results_paths if "all" not in path]
     res = Parallel(n_jobs=n_jobs)(
         delayed(get_feature_importance)(r) for r in results_paths
@@ -172,8 +185,13 @@ def main():
     params = load_yaml("../parameters.yaml")
     results_path = params["model_results_path"]
 
-    for model in ["ridge", "elastic"]:
+    # for model in ["ridge", "elastic"]:
 
+    #     assemble_summary(results_path, params, model=model)
+    #     assemble_feature_importance(results_path, params, model=model)
+    #     produce_plots(params, model=model)
+
+    for model in ["roi_ridge", "roi_elastic", "roi_lasso"]:
         assemble_summary(results_path, params, model=model)
         assemble_feature_importance(results_path, params, model=model)
         produce_plots(params, model=model)

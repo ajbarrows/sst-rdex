@@ -1,5 +1,5 @@
 #!/bin/bash
-#SBATCH --job-name=ridge_notf
+#SBATCH --job-name=ridge_noge
 #SBATCH --output=logs/%x_%j.out
 #SBATCH --error=logs/%x_%j.err
 #SBATCH --time=30:00:00
@@ -23,6 +23,6 @@ conda activate sst-rdex
 cd ../pipelines/
 
 python3 run_model.py ridge all \
- --dataset="../../data/04_model_input/rdex_prediction_dataset_no_tf.pkl" \
- --append="no_tf" \
+ --dataset="../../data/04_model_input/rdex_prediction_dataset_no_ge.pkl" \
+ --append="no_ge" \
  --n_cores=$SLURM_CPUS_PER_TASK

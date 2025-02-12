@@ -2,11 +2,11 @@
 #SBATCH --job-name=roi_ind
 #SBATCH --output=logs/%x_%j.out
 #SBATCH --error=logs/%x_%j.err
-#SBATCH --time=24:00:00
+#SBATCH --time=2:00:00
 #SBATCH --partition=general
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=16
-#SBATCH --mem=256G
+#SBATCH --mem=128G
 #SBATCH --mail-type=ALL
 
 echo "Submission Dir:  ${SLURM_SUBMIT_DIR}"
@@ -33,7 +33,7 @@ model_call(){
 
 
 for model in ridge lasso elastic; do
-    for condition in correct_go incorrect_go correct_stop incorrect_stop; do
+    for condition in incorrect_stop; do
         model_call $model $condition &
     done
 done

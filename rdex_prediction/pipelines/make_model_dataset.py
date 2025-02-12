@@ -92,7 +92,8 @@ def make_bpt_dataset(
 
     scopes["covariates"] = mri_confounds.columns.tolist()
 
-    df = pd.concat([betas, mri_confounds, targets], axis=1)
+    betas = betas.dropna(axis=1).dropna()
+    df = pd.concat([betas, mri_confounds, targets], axis=1).dropna()
     dataset = bp.Dataset(df, targets=targets.columns.tolist())
 
     for k, v in scopes.items():
@@ -120,6 +121,7 @@ def main():
     roi_betas = pd.read_parquet(params["roi_betas_path"])
 
     mri_confounds = load_tabular(params["mri_confounds_path"])
+    mri_confounds_no_ge = load_tabular(params["mri_confounds_no_ge_path"])
 
     vertex_scopes = gather_scopes(vertex_betas, mri_confounds, params["scopes_path"])
     roi_scopes = gather_scopes(
@@ -135,6 +137,14 @@ def main():
         mri_confounds,
         targets,
         fpath=params["dataset_path"],
+    )
+
+    make_bpt_dataset(
+        vertex_betas,
+        vertex_scopes,
+        mri_confounds_no_ge,
+        targets,
+        fpath=params["dataset_no_ge_path"],
     )
 
     make_bpt_dataset(

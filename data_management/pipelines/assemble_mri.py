@@ -1,6 +1,6 @@
 import pandas as pd
 
-from abcd_tools.utils.io import load_tabular, apply_nda_names
+from abcd_tools.utils.io import load_tabular, apply_nda_names, save_csv
 from abcd_tools.utils.ConfigLoader import load_yaml
 from abcd_tools.image.preprocess import compute_average_betas
 
@@ -161,16 +161,29 @@ def filter_avg_betas(
 
 
 def load_mri_confounds(
-    motion_path: str, scanner_path: str, timepoints: list
+    motion_path: str,
+    scanner_path: str,
+    timepoints: list,
+    manufacturer_filter: str = None,
 ) -> pd.DataFrame:
     motion = load_tabular(
         motion_path, cols=["iqc_sst_all_mean_motion"], timepoints=timepoints
     )
-    scanner = load_tabular(
-        scanner_path, cols=["mri_info_deviceserialnumber"], timepoints=timepoints
-    )
 
-    return pd.concat([motion, scanner], axis=1)
+    if manufacturer_filter is not None:
+        scanner = load_tabular(
+            scanner_path,
+            cols=["mri_info_deviceserialnumber", "mri_info_manufacturer"],
+            timepoints=timepoints,
+        )
+        scanner = scanner[scanner["mri_info_manufacturer"] != manufacturer_filter]
+        scanner = scanner.drop(columns=["mri_info_manufacturer"])
+    else:
+        scanner = load_tabular(
+            scanner_path, cols=["mri_info_deviceserialnumber"], timepoints=timepoints
+        )
+
+    return pd.concat([motion, scanner], axis=1).dropna()
 
 
 def load_contrasts(
@@ -333,14 +346,25 @@ def main():
     # mri_confounds = load_mri_confounds(
     #     params["motion_path"], params["scanner_path"], params["timepoints"]
     # )
+    mri_confounds_no_ge = load_mri_confounds(
+        params["motion_path"],
+        params["scanner_path"],
+        params["timepoints"],
+        manufacturer_filter="GE MEDICAL SYSTEMS",
+    )
     # save_csv(
     #     mri_confounds,
     #     params["mri_confounds_output_dir"] + "mri_confounds.csv",
     # )
 
-    roi_betas = make_roi_dataset(params)
-    roi_betas = filter_rois(roi_betas, params)
-    roi_betas.to_parquet(params["roi_betas_output_dir"])
+    save_csv(
+        mri_confounds_no_ge,
+        params["mri_confounds_output_dir"] + "mri_confounds_no_ge.csv",
+    )
+
+    # roi_betas = make_roi_dataset(params)
+    # roi_betas = filter_rois(roi_betas, params)
+    # roi_betas.to_parquet(params["roi_betas_output_dir"])
 
 
 if __name__ == "__main__":
