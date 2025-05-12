@@ -1,26 +1,37 @@
-# betas_path: "../../data/03_primary/processed_betas/"
-betas_path: "../../data/03_primary/processed_betas/r5/"
+sst_betas_path: "../../data/03_primary/processed_betas/r6/sst/"
+nback_betas_path: "../../data/03_primary/processed_betas/r6/nback/"
+# betas_path: "../../data/03_primary/processed_betas/r5/"
 roi_betas_path: "../../data/03_primary/roi_betas.parquet"
 mri_confounds_path: "../../data/03_primary/mri_confounds.csv"
 mri_confounds_no_ge_path: "../../data/03_primary/mri_confounds_no_ge.csv"
+
+mri_confounds_sst_path: "../../data/03_primary/mri_confounds_sst.csv"
+mri_confounds_nback_path: "../../data/03_primary/mri_confounds_nback.csv"
+
 targets_path: "../../data/03_primary/filtered_behavioral.csv"
 targets_no_tf_path: "../../data/03_primary/filtered_behavioral_no_tf.csv"
-dataset_path: "../../data/04_model_input/rdex_prediction_dataset.pkl"
-dataset_no_tf_path: "../../data/04_model_input/rdex_prediction_dataset_no_tf.pkl"
-dataset_no_ge_path: "../../data/04_model_input/rdex_prediction_dataset_no_ge.pkl"
+nback_targets_path: "../../data/03_primary/filtered_behavioral_nback.csv"
+
+
+sst_dataset_path: "../../data/04_model_input/rdex_prediction_dataset.pkl"
+sst_dataset_no_tf_path: "../../data/04_model_input/rdex_prediction_dataset_no_tf.pkl"
+nback_dataset_path: "../../data/04_model_input/rdex_prediction_nback_dataset.pkl"
+sst_nback_dataset_path: "../../data/04_model_input/eea_prediction_sst_nback_dataset.pkl"
 
 roi_dataset_path: "../../data/04_model_input/rdex_prediction_roi_dataset.pkl"
 roi_dataset_no_tf_path: "../../data/04_model_input/rdex_prediction_roi_dataset_no_tf.pkl"
 
-scopes_path: "../../data/04_model_input/rdex_prediction_scopes.pkl"
+
+
+sst_scopes_path: "../../data/04_model_input/rdex_prediction_scopes_sst.pkl"
+nback_scopes_path: "../../data/04_model_input/rdex_prediction_scopes_nback.pkl"
 roi_scopes_path: "../../data/04_model_input/rdex_prediction_roi_scopes.pkl"
 
 model_comparisons: ['ridge', 'elastic', 'lasso']
 predictor_comparisons: ['incorrect_go', 'correct_go', 'correct_stop', 'incorrect_stop']
 
 model_results_path: "../../data/05_model_output/rdex_prediction/"
-
-
+permutation_results_path: "../../data/05_model_output/rdex_prediction/permutation/"
 plot_output_path: "../../data/06_reporting/rdex_prediction/"
 
 process_map: {
@@ -38,7 +49,7 @@ process_map: {
     'tau':'Stop Process',
     'SSRT':'SSRT',
     'issrt':'SSRT',
-    'correct_go_rt':'Go Process',
+    # 'correct_go_rt':'Go Process',
     'correct_go_mrt':'Go Process',
     'correct_go_stdrt':'Go Process'
 }
@@ -64,7 +75,7 @@ target_map: {
     'tau':'Stop ExGaussian exponential mean ($\tau$)',
     'SSRT':'Model derived SSRT',
     'issrt':'Empirical SSRT',
-    'correct_go_rt':'Go choice accuracy',
+    # 'correct_go_rt':'Go choice accuracy',
     'correct_go_mrt':'Correct-Go response time (RT)',
     'correct_go_stdrt':'Correct-Go RT variability',
     'correct_go': 'Correct Go',

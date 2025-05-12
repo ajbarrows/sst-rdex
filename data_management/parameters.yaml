@@ -3,10 +3,15 @@ timepoints: ['baseline_year_1_arm_1']
 
 # Behavioral
 sst_behavioral_path: "../../data/01_raw/tabular/core/imaging/mri_y_tfmr_sst_beh.csv"
+nback_behavioral_path: "../../data/01_raw/tabular/core/imaging/mri_y_tfmr_nback_beh.csv"
 rdex_map_path: "../../data/01_raw/SST_MAPS_base_r3.csv"
 rdex_map_notf_path: "../../data/01_raw/baseline_notf_SST_MAPS.csv"
-filtered_behavioral_path: "../../data/03_primary/filtered_behavioral.csv"
-filtered_behavioral_no_tf_path: "../../data/03_primary/filtered_behavioral_no_tf.csv"
+# nback_rdex_median_path: "../../data/01_raw/abcd_efu_base_inf_postmedians.csv"
+nback_rdex_map_0back: "../../data/01_raw/zeroback_MAPS_baseline.csv"
+nback_rdex_map_2back: "../../data/01_raw/twoback_MAPS_baseline.csv"
+filtered_behavioral_path_sst: "../../data/03_primary/filtered_behavioral.csv"
+filtered_behavioral_no_tf_path_sst: "../../data/03_primary/filtered_behavioral_no_tf.csv"
+filtered_behavioral_path_nback: "../../data/03_primary/filtered_behavioral_nback.csv"
 
 beh_rt_vars: {
     'tfmri_sst_all_beh_crgo_mrt': 'correct_go_mrt',
@@ -14,14 +19,25 @@ beh_rt_vars: {
     'tfmri_sst_all_beh_total_issrt': 'issrt'
 }
 
+nback_rt_vars: {
+    "tfmri_nb_all_beh_ctotal_mrt": "nback_mrt",
+    "tfmri_nb_all_beh_ctotal_stdrt": "nback_stdrt",
+}
+
 # MRI
-mri_r1_dof_path_r5: "../../data/01_raw/abcd-sync/5.0/tabulated/img/mrisstr1bw01.csv"
-mri_r2_dof_path_r5: "../../data/01_raw/abcd-sync/5.0/tabulated/img/mrisstr2bw01.csv"
+sst_r1_dof_path_r5: "../../data/01_raw/abcd-sync/5.0/tabulated/img/mrisstr1bw01.csv"
+sst_r2_dof_path_r5: "../../data/01_raw/abcd-sync/5.0/tabulated/img/mrisstr2bw01.csv"
 
-mri_r1_dof_path_r6: "../../data/01_raw/abcd-sync/6.0/tabulated/img/mrisstr1bw01.csv"
-mri_r2_dof_path_r6: "../../data/01_raw/abcd-sync/6.0/tabulated/img/mrisstr2bw01.csv"
+nback_r1_dof_path_r5: "../../data/01_raw/abcd-sync/5.0/tabulated/img/nbackr101.csv"
+nback_r2_dof_path_r5: "../../data/01_raw/abcd-sync/5.0/tabulated/img/nbackr201.csv"
 
-vol_info_path_r4: "../../data/02_intermediate/betas/r4/vol_info.parquet"
+sst_r1_dof_path_r6: "../../data/01_raw/abcd-sync/6.0/tabulated/img/mrisstr1bw01.csv"
+sst_r2_dof_path_r6: "../../data/01_raw/abcd-sync/6.0/tabulated/img/mrisstr2bw01.csv"
+
+nback_r1_dof_path_r6: "../../data/01_raw/abcd-sync/6.0/tabulated/img/nbackr101.csv"
+nback_r2_dof_path_r6: "../../data/01_raw/abcd-sync/6.0/tabulated/img/nbackr201.csv"
+
+# vol_info_path_r4: "../../data/02_intermediate/betas/r4/vol_info.parquet"
 vol_info_path_r5: "../../data/02_intermediate/betas/r5/vol_info.parquet"
 vol_info_path_r6: "../../data/02_intermediate/betas/r6/vol_info.parquet"
 mri_qc_path: "../../data/01_raw/tabular/core/imaging/mri_y_qc_incl.csv"
@@ -32,6 +48,12 @@ sst_conditions: {
     'is': 'incorrect_stop',
     'ig': 'incorrect_go'
 }
+
+nback_conditions: {
+    '2b': '2back',
+    '0b': '0back'
+}
+
 runs: ['r01', 'r02']
 hemispheres: ['lh', 'rh']
 
@@ -43,7 +65,10 @@ sst_isvcg_names: ['incorrect.stop.vs.correct.go_']
 sst_igvcg_names: ['incorrect.go.vs.correct.go_']
 
 
-beta_input_dir_r4: "../../data/02_intermediate/betas/r4/"
+# cleaned betas
+mri_path_r5: "../../data/01_raw/abcd-sync/5.0/processed/vertexwise/SST/sst_regressors/"
+
+# beta_input_dir_r4: "../../data/02_intermediate/betas/r4/"
 beta_input_dir_r5: "../../data/02_intermediate/betas/r5/"
 beta_input_dir_r6: "../../data/02_intermediate/betas/r6/"
 beta_output_dir_r5: "../../data/02_intermediate/avg_betas/r5/"

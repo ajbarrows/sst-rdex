@@ -146,10 +146,10 @@ def make_average_fis(fis: pd.DataFrame, params: dict) -> pd.DataFrame:
         pd.DataFrame: Average feature importance scores.
     """
 
-    covars = params["covariates"]
+    params["covariates"]
     target_map = params["target_map"]
 
-    fis = fis.drop(columns=covars)
+    # fis = fis.drop(columns=covars)
 
     fisummary = fis.groupby(["grouping", "scope"]).mean().reset_index()
     fisummary = fisummary.melt(
@@ -239,14 +239,35 @@ def phenotype_feat_important_collage(avg_fis: pd.DataFrame, params: dict) -> Non
     )
 
 
+def make_table(plot_df: pd.DataFrame, params: dict) -> None:
+    """Make table for phenotype effect size.
+    Args:
+        plot_df (pd.DataFrame): Plot dataframe.
+        params (dict): Parameters.
+    """
+    ## make table
+    (
+        plot_df.groupby(["grouping", "item", "scope"])
+        .agg({"scores_r2": ["mean", "std"]})
+        .reset_index()
+        .pivot_table(index=["grouping", "item"], columns="scope", values=["scores_r2"])
+        .to_excel(
+            params["phenotype_plot_output_dir"] + "/phenotype_effectsize_table.xlsx"
+        )
+    )
+
+
 def main():
     params = load_yaml("../parameters.yaml")
 
     results = pd.read_pickle(
-        params["phenotype_output_dir"] + "/phenotype_elastic_results.pkl"
+        # params["phenotype_output_dir"] + "/phenotype_elastic_results.pkl"
+        params["phenotype_output_dir"]
+        + "/phenotype_ridge_results.pkl"
     )
     plot_df = make_phenotype_plot_df(results, params)
     make_phenotype_effectsize_plot(plot_df, params)
+    make_table(plot_df, params)
 
     fis = gather_phenotype_fis(results, params)
     avg_fis = make_average_fis(fis, params)

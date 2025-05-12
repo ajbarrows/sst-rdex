@@ -2,8 +2,8 @@
 #SBATCH --job-name=ridge_notf
 #SBATCH --output=logs/%x_%j.out
 #SBATCH --error=logs/%x_%j.err
-#SBATCH --time=30:00:00
-#SBATCH --partition=general
+#SBATCH --time=48:00:00
+#SBATCH --partition=week
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=8
 #SBATCH --mem=512G
@@ -24,5 +24,5 @@ cd ../pipelines/
 
 python3 run_model.py ridge all \
  --dataset="../../data/04_model_input/rdex_prediction_dataset_no_tf.pkl" \
- --append="no_tf" \
+ --append="vertex_no_tf" \
  --n_cores=$SLURM_CPUS_PER_TASK

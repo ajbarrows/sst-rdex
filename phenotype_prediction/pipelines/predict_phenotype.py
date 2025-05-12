@@ -1,11 +1,10 @@
 import pandas as pd
 import os
 import BPt as bp
+from BPt.extensions import LinearResidualizer
 
 from abcd_tools.utils.io import load_tabular
 from abcd_tools.utils.ConfigLoader import load_yaml
-
-from sklearn.linear_model import ElasticNet
 
 
 def get_phenotype_scopes(predictors: pd.DataFrame, fpath: str, params: dict) -> dict:
@@ -93,8 +92,11 @@ def prepare_phenotype_dataset(
     return ds, scopes
 
 
-def define_phenotype_prediction_pipeline() -> bp.Pipeline:
+def define_phenotype_prediction_pipeline(ds, scopes) -> bp.Pipeline:
     """Define phenotype prediction pipeline.
+    Args:
+        ds (bp.Dataset): Phenotype prediction dataset.
+        scopes (dict): Scopes dictionary.
 
     Returns:
         bp.Pipeline: Phenotype prediction pipeline.
@@ -104,18 +106,20 @@ def define_phenotype_prediction_pipeline() -> bp.Pipeline:
     scaler = bp.Scaler("robust", scope="float")
     normalizer = bp.Scaler("normalize", scope="float")
 
+    # Define residualizer
+    resid = LinearResidualizer(to_resid_df=ds["covariates"], fit_intercept=True)
+    resid_tr = bp.Scaler(resid, scope=list(scopes.keys()))
+
     # Define regression model
-    mod_obj = ElasticNet()
-    mod_params = {
-        "alpha": bp.p.Log(lower=1e-5, upper=1e5),
-        "l1_ratio": bp.p.Scalar(lower=0.001, upper=1).set_mutation(sigma=0.165),
-    }
+    mod_obj = "ridge"
+
+    mod_params = {"alpha": bp.p.Log(lower=1e-5, upper=1e5)}
     param_search = bp.ParamSearch("HammersleySearch", n_iter=100, cv="default")
 
     model = bp.Model(obj=mod_obj, params=mod_params, param_search=param_search)
 
     # Then define full pipeline
-    pipe = bp.Pipeline([scaler, normalizer, model])
+    pipe = bp.Pipeline([scaler, normalizer, resid_tr, model])
 
     return pipe
 
@@ -135,14 +139,15 @@ def fit_phenotype_prediction_model(
         bp.CompareDict: Model results.
     """
 
-    pipe = define_phenotype_prediction_pipeline()
+    pipe = define_phenotype_prediction_pipeline(ds, scopes)
     cv = bp.CV(splits=5, n_repeats=1)
     ps = bp.ProblemSpec(n_jobs=n_cores, random_state=random_state)
 
     compare_scopes = []
     for key in scopes.keys():
         if key not in ["category", "covariates"]:
-            compare_scopes.append(bp.Option(["covariates", key], name=key))
+            # compare_scopes.append(bp.Option(["covariates", key], name=key))
+            compare_scopes.append(bp.Option([key], name=key))
 
     results = bp.evaluate(
         pipeline=pipe,
@@ -190,7 +195,7 @@ def main():
     results = fit_phenotype_prediction_model(
         ds, scopes, n_cores=n_cores, random_state=42
     )
-    save_model_results(results, "phenotype", "elastic", params["phenotype_output_dir"])
+    save_model_results(results, "phenotype", "ridge", params["phenotype_output_dir"])
 
 
 if __name__ == "__main__":

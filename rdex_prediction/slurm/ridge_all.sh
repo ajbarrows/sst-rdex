@@ -2,8 +2,8 @@
 #SBATCH --job-name=ridge_all
 #SBATCH --output=logs/%x_%j.out
 #SBATCH --error=logs/%x_%j.err
-#SBATCH --time=30:00:00
-#SBATCH --partition=general
+#SBATCH --time=48:00:00
+#SBATCH --partition=week
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=8
 #SBATCH --mem=512G
@@ -22,4 +22,4 @@ conda activate sst-rdex
 
 cd ../pipelines/
 
-python3 run_model.py ridge all --n_cores=$SLURM_CPUS_PER_TASK
+python3 run_model.py ridge all --n_cores=$SLURM_CPUS_PER_TASK --append="vertex"

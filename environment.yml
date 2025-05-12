@@ -2,17 +2,17 @@ name: sst-rdex
 channels:
   - conda-forge
 dependencies:
-  - _libgcc_mutex=0.1
-  - _openmp_mutex=4.5
+  # - _libgcc_mutex=0.1
+  # - _openmp_mutex=4.5
   - bzip2=1.0.8
   - ca-certificates=2024.12.14
-  - ld_impl_linux-64=2.43
+  # - ld_impl_linux-64=2.43
   - libffi=3.4.2
-  - libgcc=14.2.0
-  - libgcc-ng=14.2.0
-  - libgomp=14.2.0
+  # - libgcc=14.2.0
+  # - libgcc-ng=14.2.0
+  # - libgomp=14.2.0
   - liblzma=5.6.3
-  - libnsl=2.0.1
+  # - libnsl=2.0.1
   - libsqlite=3.48.0
   - libuuid=2.38.1
   - libxcrypt=4.4.36
@@ -26,7 +26,7 @@ dependencies:
   - tk=8.6.13
   - wheel=0.45.1
   - pip:
-      - abcd-tools==0.0.1
+      # - abcd-tools==0.0.1
       - anyio==4.8.0
       - argon2-cffi==23.1.0
       - argon2-cffi-bindings==21.2.0
@@ -38,8 +38,8 @@ dependencies:
       - bayesian-optimization==1.5.0
       - beautifulsoup4==4.12.3
       - bleach==6.2.0
-      - bp-neurotools==0.24
-      - brain-pred-toolbox==2.3.2
+      # - bp-neurotools==0.24
+      # - brain-pred-toolbox==2.3.2
       - certifi==2024.12.14
       - cffi==1.17.1
       - charset-normalizer==3.4.1
@@ -131,7 +131,7 @@ dependencies:
       - scikit-image==0.24.0
       - scikit-learn==1.1.3
       - scipy==1.15.1
-      - seaborn==0.13.2
+      # - seaborn==0.13.2
       - send2trash==1.8.3
       - six==1.17.0
       - sniffio==1.3.1

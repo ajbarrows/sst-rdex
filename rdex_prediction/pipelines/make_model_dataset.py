@@ -1,5 +1,6 @@
 import glob
 import pandas as pd
+import numpy as np
 import BPt as bp
 
 from abcd_tools.utils.io import load_tabular
@@ -19,6 +20,7 @@ def load_betas(betas_path: str) -> pd.DataFrame:
     df = pd.DataFrame()
     for f in files:
         tmp = pd.read_parquet(f)
+        tmp = tmp.dropna(axis=1)
         df = pd.concat([df, tmp], axis=1)
     return df
 
@@ -90,12 +92,12 @@ def make_bpt_dataset(
         bp.Dataset: BPt dataset.
     """
 
-    scopes["covariates"] = mri_confounds.columns.tolist()
+    df = pd.concat([betas, mri_confounds, targets], axis=1)
+    df = df.dropna(axis=1, how="all").dropna(axis=1, how="all").dropna()
 
-    betas = betas.dropna(axis=1).dropna()
-    df = pd.concat([betas, mri_confounds, targets], axis=1).dropna()
     dataset = bp.Dataset(df, targets=targets.columns.tolist())
 
+    scopes["covariates"] = mri_confounds.columns.tolist()
     for k, v in scopes.items():
         dataset.add_scope(v, k, inplace=True)
 
@@ -103,6 +105,8 @@ def make_bpt_dataset(
     dataset = dataset.add_scope("mri_info_deviceserialnumber", "category")
     dataset = dataset.ordinalize("category")
 
+    # deal with possible inf values
+    dataset = dataset.replace([np.inf, -np.inf], np.nan)
     dataset = dataset.dropna()
 
     dataset = dataset.set_test_split(test_split, random_state=random_state)
@@ -117,54 +121,51 @@ def make_bpt_dataset(
 def main():
     params = load_yaml("../parameters.yaml")
 
-    vertex_betas = load_betas(params["betas_path"])
-    roi_betas = pd.read_parquet(params["roi_betas_path"])
+    sst_betas = load_betas(params["sst_betas_path"])
+    nback_betas = load_betas(params["nback_betas_path"])
 
-    mri_confounds = load_tabular(params["mri_confounds_path"])
-    mri_confounds_no_ge = load_tabular(params["mri_confounds_no_ge_path"])
+    mri_confounds_sst = load_tabular(params["mri_confounds_sst_path"])
+    mri_confounds_nback = load_tabular(params["mri_confounds_nback_path"])
 
-    vertex_scopes = gather_scopes(vertex_betas, mri_confounds, params["scopes_path"])
-    roi_scopes = gather_scopes(
-        roi_betas, mri_confounds, params["roi_scopes_path"], roi=True
+    sst_scopes = gather_scopes(sst_betas, mri_confounds_sst, params["sst_scopes_path"])
+    nback_scopes = gather_scopes(
+        nback_betas, mri_confounds_nback, params["nback_scopes_path"]
     )
 
     targets = load_tabular(params["targets_path"])
-    target_no_tf = load_tabular(params["targets_no_tf_path"])
+    targets_no_tf = load_tabular(params["targets_no_tf_path"])
+    targets_nback = load_tabular(params["nback_targets_path"])
 
     make_bpt_dataset(
-        vertex_betas,
-        vertex_scopes,
-        mri_confounds,
+        sst_betas,
+        sst_scopes,
+        mri_confounds_sst,
         targets,
-        fpath=params["dataset_path"],
+        fpath=params["sst_dataset_path"],
     )
 
     make_bpt_dataset(
-        vertex_betas,
-        vertex_scopes,
-        mri_confounds_no_ge,
-        targets,
-        fpath=params["dataset_no_ge_path"],
+        sst_betas,
+        sst_scopes,
+        mri_confounds_sst,
+        targets_no_tf,
+        fpath=params["sst_dataset_no_tf_path"],
     )
 
     make_bpt_dataset(
-        vertex_betas,
-        vertex_scopes,
-        mri_confounds,
-        target_no_tf,
-        fpath=params["dataset_no_tf_path"],
+        nback_betas,
+        nback_scopes,
+        mri_confounds_nback,
+        targets_nback,
+        fpath=params["nback_dataset_path"],
     )
 
     make_bpt_dataset(
-        roi_betas, roi_scopes, mri_confounds, targets, fpath=params["roi_dataset_path"]
-    )
-
-    make_bpt_dataset(
-        roi_betas,
-        roi_scopes,
-        mri_confounds,
-        target_no_tf,
-        fpath=params["roi_dataset_no_tf_path"],
+        sst_betas,
+        sst_scopes,
+        mri_confounds_sst,
+        targets_nback,
+        fpath=params["sst_nback_dataset_path"],
     )
 
 

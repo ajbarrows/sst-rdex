@@ -1,3 +1,7 @@
+# ignore HPC shell scripts
+*.sh
+
+
 # ignore everything in the following folders
 data/**
 
@@ -16,6 +20,9 @@ logs/
 .AppleDouble
 .LSOverride
 .Trashes
+
+exploration/
+reports/
 
 ### Python template
 # Byte-compiled / optimized / DLL files

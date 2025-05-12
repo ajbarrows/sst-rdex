@@ -1,16 +1,21 @@
 import pandas as pd
 
+import glob
+
+from scipy.io import loadmat
+
 from abcd_tools.utils.io import load_tabular, apply_nda_names, save_csv
 from abcd_tools.utils.ConfigLoader import load_yaml
 from abcd_tools.image.preprocess import compute_average_betas
 
 
-def load_mri_qc(mri_qc_path: str) -> pd.DataFrame:
-    mri_qc = load_tabular(mri_qc_path, cols=["imgincl_sst_include"])
-    return mri_qc[mri_qc["imgincl_sst_include"] == 1]
+def load_mri_qc(mri_qc_path: str, task: str) -> pd.DataFrame:
+    qc_var = "imgincl_" + task + "_include"
+    mri_qc = load_tabular(mri_qc_path, cols=[qc_var])
+    return mri_qc[mri_qc[qc_var] == 1]
 
 
-def load_degrees_of_freedom(r1_fpath: str, r2_fpath: str) -> pd.DataFrame:
+def load_degrees_of_freedom(r1_fpath: str, r2_fpath: str, task: str) -> pd.DataFrame:
     """Load censored frame information for run averaging.
 
     Args:
@@ -20,8 +25,16 @@ def load_degrees_of_freedom(r1_fpath: str, r2_fpath: str) -> pd.DataFrame:
     Returns:
         pd.DataFrame: DOFs for runs 1 and 2
     """
-    r1_dof = load_tabular(r1_fpath, cols=["tfmri_sstr1_beta_dof"])
-    r2_dof = load_tabular(r2_fpath, cols=["tfmri_sstr2_beta_dof"])
+
+    if task == "sst":
+        run1_var = "tfmri_sstr1_beta_dof"
+        run2_var = "tfmri_sstr2_beta_dof"
+    elif task == "nback":
+        run1_var = "tfmri_nback_run1_beta_dof"
+        run2_var = "tfmri_nback_r2_beta_dof"
+
+    r1_dof = load_tabular(r1_fpath, cols=[run1_var])
+    r2_dof = load_tabular(r2_fpath, cols=[run2_var])
 
     return pd.concat([r1_dof, r2_dof], axis=1)
 
@@ -59,18 +72,21 @@ def parse_vol_info(vol_info: pd.DataFrame) -> pd.DataFrame:
 
 
 def combine_betas(
-    sst_conditions: dict,
+    conditions: dict,
     hemispheres: list,
     dof: pd.DataFrame,
+    task: str,
     beta_input_dir: str,
     beta_output_dir: str,
     vol_info_path: str,
     release: str = "r5",
+    rem_outliers: bool = True,
+    normalize: bool = True,
 ) -> None:
-    """Combine betas for SST conditions
+    """Combine betas for task conditions
 
     Args:
-        sst_conditions (dict): SST conditions
+        conditions (dict): task conditions
         hemispheres (list): Hemispheres
         beta_input_dir (str): Directory containing beta data
         beta_output_dir (str): Directory to save combined betas
@@ -84,27 +100,39 @@ def combine_betas(
     if release == "r6":
         vol_info = parse_vol_info(vol_info)
 
-    for condition in sst_conditions.keys():
+    task_map = {"sst": "SST", "nback": "nBack", "mid": "MID"}
+
+    for condition in conditions.keys():
         betas = {}
         for hemi in hemispheres:
 
             if release == "r5":
+                task_read = task_map[task]
+                run1_fpath = f"{beta_input_dir}{task_read}_1_{conditions[condition]}\
+                    -{hemi}.parquet"
+                run2_fpath = f"{beta_input_dir}{task_read}_2_{conditions[condition]}\
+                    -{hemi}.parquet"
+            elif release == "r6":
                 run1_fpath = (
-                    f"{beta_input_dir}SST_1_{sst_conditions[condition]}-{hemi}.parquet"
+                    f"{beta_input_dir}{task}_{condition}_beta_r01_{hemi}.parquet"
                 )
                 run2_fpath = (
-                    f"{beta_input_dir}SST_2_{sst_conditions[condition]}-{hemi}.parquet"
+                    f"{beta_input_dir}{task}_{condition}_beta_r02_{hemi}.parquet"
                 )
-            elif release == "r6":
-                run1_fpath = f"{beta_input_dir}sst_{condition}_beta_r01_{hemi}.parquet"
-                run2_fpath = f"{beta_input_dir}sst_{condition}_beta_r02_{hemi}.parquet"
 
             run1 = pd.read_parquet(run1_fpath)
             run2 = pd.read_parquet(run2_fpath)
 
-            name = sst_conditions[condition]
+            name = conditions[condition]
             avg_betas = compute_average_betas(
-                run1, run2, vol_info, dof, name=name, release=release
+                run1,
+                run2,
+                vol_info,
+                dof,
+                name=name,
+                release=release,
+                rem_outliers=rem_outliers,
+                normalize=normalize,
             )
 
             betas[hemi] = avg_betas
@@ -116,7 +144,7 @@ def combine_betas(
 
 def filter_avg_betas(
     mri_qc_df: pd.DataFrame,
-    sst_conditions: list,
+    conditions: list,
     filtered_behavioral_path: str,
     beta_output_dir: str,
     processed_beta_dir: str,
@@ -125,7 +153,7 @@ def filter_avg_betas(
 
     Args:
         mri_qc_df (pd.DataFrame): MRI QC data
-        sst_conditions (list): SST conditions
+        conditions (list): onditions
         beta_output_dir (str): Path to average betas
         processed_beta_dir (str): Path to processed betas
 
@@ -137,7 +165,7 @@ def filter_avg_betas(
     filtered_behavioral = load_tabular(filtered_behavioral_path)
     n_targets = filtered_behavioral.shape[0]
 
-    for condition in sst_conditions:
+    for condition in conditions:
         avg_betas_fpath = f"{beta_output_dir}average_betas_{condition}.parquet"
         avg_betas = pd.read_parquet(avg_betas_fpath)
 
@@ -164,10 +192,11 @@ def load_mri_confounds(
     motion_path: str,
     scanner_path: str,
     timepoints: list,
+    task: str,
     manufacturer_filter: str = None,
 ) -> pd.DataFrame:
     motion = load_tabular(
-        motion_path, cols=["iqc_sst_all_mean_motion"], timepoints=timepoints
+        motion_path, cols=[f"iqc_{task}_all_mean_motion"], timepoints=timepoints
     )
 
     if manufacturer_filter is not None:
@@ -315,52 +344,94 @@ def filter_rois(roi_betas: pd.DataFrame, params: dict) -> pd.DataFrame:
     return roi_betas
 
 
+def load_betas(params: dict) -> pd.DataFrame:
+    """
+    Load the betas from the R5 release
+
+    Args:
+        params: dictionary of parameters
+
+    Returns:
+        DataFrame with the betas
+
+    """
+
+    # load subject ids
+    pguids_path = params["mri_path_r5"] + "sst_regressors_pguids.csv"
+    pguids = pd.read_csv(pguids_path)
+    pguids = ["NDAR_" + c for c in pguids.columns]
+
+    # load betas
+    file_list = glob.glob(params["mri_path_r5"] + "/*.mat")
+
+    names = [f.split("/")[-1] for f in file_list]
+    parts = [n.rsplit("_", 4) for n in names]
+
+    conditions = [p[0] for p in parts]
+    hemis = [p[-1].rstrip(".mat") for p in parts]
+
+    df = pd.DataFrame(index=pguids)
+
+    for file, condition, hemi in zip(file_list, conditions, hemis):
+
+        data = loadmat(file)["merged_" + hemi]
+        data = pd.DataFrame(data.T, index=pguids)
+        data.columns = [condition + "_" + hemi + "_" + str(i) for i in data.columns]
+
+        df = pd.concat([df, data], axis=1)
+
+    df = df.reset_index(names="src_subject_id")
+    df.insert(1, "eventname", "baseline_year_1_arm_1")
+
+    return df
+
+
 def main():
     params = load_yaml("../parameters.yaml")
 
     # for release in ["r5", "r6"]:
-    # for release in ["r5"]:
-    #     dof = load_degrees_of_freedom(
-    #         params[f"mri_r1_dof_path_{release}"], params[f"mri_r2_dof_path_{release}"]
-    #     )
-    #     mri_qc_df = load_mri_qc(params["mri_qc_path"])
+    # release = "r5"
+    release = "r6"
 
-    #     combine_betas(
-    #         params["sst_conditions"],
-    #         params["hemispheres"],
-    #         dof,
-    #         params[f"beta_input_dir_{release}"],
-    #         params[f"beta_output_dir_{release}"],
-    #         params[f"vol_info_path_{release}"],
-    #         release=release,
-    #     )
+    # for task in ['sst', 'nback']:
+    # for task in ['sst']:
+    for task in ["nback"]:
+        dof = load_degrees_of_freedom(
+            params[f"{task}_r1_dof_path_{release}"],
+            params[f"{task}_r2_dof_path_{release}"],
+            task,
+        )
+        mri_qc_df = load_mri_qc(params["mri_qc_path"], task)
 
-    #     filter_avg_betas(
-    #         mri_qc_df,
-    #         params["sst_conditions"].keys(),
-    #         params["filtered_behavioral_path"],
-    #         params[f"beta_output_dir_{release}"],
-    #         params[f"processed_beta_dir_{release}"],
-    #     )
+        conditions = params[f"{task}_conditions"]
 
-    # mri_confounds = load_mri_confounds(
-    #     params["motion_path"], params["scanner_path"], params["timepoints"]
-    # )
-    mri_confounds_no_ge = load_mri_confounds(
-        params["motion_path"],
-        params["scanner_path"],
-        params["timepoints"],
-        manufacturer_filter="GE MEDICAL SYSTEMS",
-    )
-    # save_csv(
-    #     mri_confounds,
-    #     params["mri_confounds_output_dir"] + "mri_confounds.csv",
-    # )
+        combine_betas(
+            conditions,
+            params["hemispheres"],
+            dof,
+            task,
+            params[f"beta_input_dir_{release}"],
+            params[f"beta_output_dir_{release}"],
+            params[f"vol_info_path_{release}"],
+            release=release,
+        )
 
-    save_csv(
-        mri_confounds_no_ge,
-        params["mri_confounds_output_dir"] + "mri_confounds_no_ge.csv",
-    )
+        filter_avg_betas(
+            mri_qc_df,
+            conditions.keys(),
+            params[f"filtered_behavioral_path_{task}"],
+            params[f"beta_output_dir_{release}"],
+            params[f"processed_beta_dir_{release}"] + f"{task}/",
+        )
+
+        mri_confounds = load_mri_confounds(
+            params["motion_path"], params["scanner_path"], params["timepoints"], task
+        )
+
+        save_csv(
+            mri_confounds,
+            params["mri_confounds_output_dir"] + f"mri_confounds_{task}.csv",
+        )
 
     # roi_betas = make_roi_dataset(params)
     # roi_betas = filter_rois(roi_betas, params)

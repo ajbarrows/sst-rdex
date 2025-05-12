@@ -2,6 +2,7 @@ import os
 import argparse
 
 import pandas as pd
+import numpy as np
 
 import BPt as bp
 
@@ -27,6 +28,9 @@ def fit(
         scopes = filter_scopes([condition], scopes)
         complete = False
 
+    # deal with inf values that sneak in
+    ds = ds.replace([np.inf, -np.inf], np.nan).dropna()
+
     res = fit_model(
         ds, scopes, model, complete=complete, n_cores=n_cores, random_state=random_state
     )
@@ -46,10 +50,13 @@ def main():
         help="Options: all, correct_go, correct_stop, incorrect_go, incorrect_stop",
     )
     parser.add_argument(
-        "--dataset", type=str, default=params["dataset_path"], help="Path to dataset"
+        "--dataset",
+        type=str,
+        default=params["sst_dataset_path"],
+        help="Path to dataset",
     )
     parser.add_argument(
-        "--scopes", type=str, default=params["scopes_path"], help="Path to scopes"
+        "--scopes", type=str, default=params["sst_scopes_path"], help="Path to scopes"
     )
     parser.add_argument(
         "--fpath",
