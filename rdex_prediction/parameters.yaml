@@ -15,6 +15,7 @@ nback_targets_path: "../../data/03_primary/filtered_behavioral_nback.csv"
 
 sst_dataset_path: "../../data/04_model_input/rdex_prediction_dataset.pkl"
 sst_dataset_no_tf_path: "../../data/04_model_input/rdex_prediction_dataset_no_tf.pkl"
+sst_contrast_dataset_path: "../../data/04_model_input/rdex_prediction_contrasts_dataset.pkl"
 nback_dataset_path: "../../data/04_model_input/rdex_prediction_nback_dataset.pkl"
 sst_nback_dataset_path: "../../data/04_model_input/eea_prediction_sst_nback_dataset.pkl"
 
@@ -24,6 +25,7 @@ roi_dataset_no_tf_path: "../../data/04_model_input/rdex_prediction_roi_dataset_n
 
 
 sst_scopes_path: "../../data/04_model_input/rdex_prediction_scopes_sst.pkl"
+sst_contrast_scopes_path: "../../data/04_model_input/rdex_prediction_scopes_sst_contrasts.pkl"
 nback_scopes_path: "../../data/04_model_input/rdex_prediction_scopes_nback.pkl"
 roi_scopes_path: "../../data/04_model_input/rdex_prediction_roi_scopes.pkl"
 

@@ -1088,6 +1088,7 @@ def produce_supplement_plots(params: dict):
 
     fpath_ridge = params["model_results_path"] + "vertex_ridge_feature_importance.pkl"
     fpath_lasso = params["model_results_path"] + "vertex_lasso_feature_importance.pkl"
+    (params["model_results_path"] + "all_vertex_contrasts_ridge_feature_importance.pkl")
 
     plot_names = {
         "ridge": {

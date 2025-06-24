@@ -284,7 +284,9 @@ def load_vertexwise_model_summaries(params):
 def main():
 
     params = load_yaml("../parameters.yaml")
-    params["model_results_path"]
+    model_res_path = params["model_results_path"]
+
+    assemble_feature_importance(model_res_path, params)
 
     produce_supplement_plots(params)
 

@@ -25,6 +25,59 @@ def load_betas(betas_path: str) -> pd.DataFrame:
     return df
 
 
+def strip_suffix(s: str):
+    """Strip the first two parts of a string separated by underscores."""
+    return "_".join(s.split("_")[2:])
+
+
+def make_contrast(fpath: str, cond1: tuple, cond2: tuple) -> pd.DataFrame:
+    """Make a contrast between two conditions.
+    Args:
+        fpath (str): Path to the folder containing the betas.
+        cond1 (tuple): First condition (string, string).
+        cond2 (tuple): Second condition (string, string).
+    Returns:
+        pd.DataFrame: Contrast between the two conditions.
+    """
+
+    files = glob.glob(fpath + "*.parquet")
+    df1 = pd.read_parquet([f for f in files if cond1[0] in f][0])
+    df2 = pd.read_parquet([f for f in files if cond2[0] in f][0])
+
+    df1 = df1.fillna(0)
+    df2 = df2.fillna(0)
+
+    df1.columns = [strip_suffix(col) for col in df1.columns]
+    df2.columns = [strip_suffix(col) for col in df2.columns]
+
+    contrast_name = f"{cond1[1]}_{cond2[1]}"
+    df = df1 - df2
+    df = df.rename(columns={col: f"{contrast_name}_{col}" for col in df.columns})
+
+    return df
+
+
+def load_contrasts(params: dict) -> pd.DataFrame:
+    """Load specific contrasts from processed betas."""
+    return pd.concat(
+        [
+            make_contrast(
+                params["sst_betas_path"], ("cs", "correctstop"), ("cg", "correctgo")
+            ),
+            make_contrast(
+                params["sst_betas_path"], ("cs", "correctstop"), ("ig", "incorrectgo")
+            ),
+            make_contrast(
+                params["sst_betas_path"], ("is", "incorrectstop"), ("cs", "correctstop")
+            ),
+            make_contrast(
+                params["sst_betas_path"], ("is", "incorrectstop"), ("ig", "incorrectgo")
+            ),
+        ],
+        axis=1,
+    )
+
+
 def gather_scopes(
     betas: pd.DataFrame, mri_confounds: pd.DataFrame, fpath: str = None, roi=False
 ) -> dict:
@@ -124,48 +177,60 @@ def main():
     sst_betas = load_betas(params["sst_betas_path"])
     nback_betas = load_betas(params["nback_betas_path"])
 
+    sst_contrasts = load_contrasts(params)
+
     mri_confounds_sst = load_tabular(params["mri_confounds_sst_path"])
     mri_confounds_nback = load_tabular(params["mri_confounds_nback_path"])
 
-    sst_scopes = gather_scopes(sst_betas, mri_confounds_sst, params["sst_scopes_path"])
-    nback_scopes = gather_scopes(
-        nback_betas, mri_confounds_nback, params["nback_scopes_path"]
+    gather_scopes(sst_betas, mri_confounds_sst, params["sst_scopes_path"])
+    gather_scopes(nback_betas, mri_confounds_nback, params["nback_scopes_path"])
+
+    sst_contrast_scopes = gather_scopes(
+        sst_contrasts, mri_confounds_sst, params["sst_contrast_scopes_path"]
     )
 
     targets = load_tabular(params["targets_path"])
-    targets_no_tf = load_tabular(params["targets_no_tf_path"])
-    targets_nback = load_tabular(params["nback_targets_path"])
+    load_tabular(params["targets_no_tf_path"])
+    load_tabular(params["nback_targets_path"])
+
+    # make_bpt_dataset(
+    #     sst_betas,
+    #     sst_scopes,
+    #     mri_confounds_sst,
+    #     targets,
+    #     fpath=params["sst_dataset_path"],
+    # )
+
+    # make_bpt_dataset(
+    #     sst_betas,
+    #     sst_scopes,
+    #     mri_confounds_sst,
+    #     targets_no_tf,
+    #     fpath=params["sst_dataset_no_tf_path"],
+    # )
+
+    # make_bpt_dataset(
+    #     nback_betas,
+    #     nback_scopes,
+    #     mri_confounds_nback,
+    #     targets_nback,
+    #     fpath=params["nback_dataset_path"],
+    # )
+
+    # make_bpt_dataset(
+    #     sst_betas,
+    #     sst_scopes,
+    #     mri_confounds_sst,
+    #     targets_nback,
+    #     fpath=params["sst_nback_dataset_path"],
+    # )
 
     make_bpt_dataset(
-        sst_betas,
-        sst_scopes,
+        sst_contrasts,
+        sst_contrast_scopes,
         mri_confounds_sst,
         targets,
-        fpath=params["sst_dataset_path"],
-    )
-
-    make_bpt_dataset(
-        sst_betas,
-        sst_scopes,
-        mri_confounds_sst,
-        targets_no_tf,
-        fpath=params["sst_dataset_no_tf_path"],
-    )
-
-    make_bpt_dataset(
-        nback_betas,
-        nback_scopes,
-        mri_confounds_nback,
-        targets_nback,
-        fpath=params["nback_dataset_path"],
-    )
-
-    make_bpt_dataset(
-        sst_betas,
-        sst_scopes,
-        mri_confounds_sst,
-        targets_nback,
-        fpath=params["sst_nback_dataset_path"],
+        fpath=params["sst_contrast_dataset_path"],
     )
 
 
