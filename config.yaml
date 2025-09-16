@@ -1,0 +1,108 @@
+# Unified configuration for RDEX-ABCD analysis pipeline
+
+# Environment settings
+environment:
+  data_root: "./data"
+  output_root: "./results"
+  temp_dir: "./tmp"
+
+# Data management paths
+data_management:
+  # Raw data paths
+  sst_betas_path: "data/03_primary/processed_betas/r6/sst/"
+  nback_betas_path: "data/03_primary/processed_betas/r6/nback/"
+  roi_betas_path: "data/03_primary/roi_betas.parquet"
+
+  # Confounds
+  mri_confounds_path: "data/03_primary/mri_confounds.csv"
+  mri_confounds_no_ge_path: "data/03_primary/mri_confounds_no_ge.csv"
+  mri_confounds_sst_path: "data/03_primary/mri_confounds_sst.csv"
+  mri_confounds_nback_path: "data/03_primary/mri_confounds_nback.csv"
+
+  # Behavioral data
+  targets_path: "data/03_primary/filtered_behavioral.csv"
+  targets_no_tf_path: "data/03_primary/filtered_behavioral_no_tf.csv"
+  nback_targets_path: "data/03_primary/filtered_behavioral_nback.csv"
+
+  # Output paths
+  output_dir: "data/04_model_input"
+
+# RDEX prediction configuration
+rdex_prediction:
+  # Dataset paths
+  sst_dataset_path: "data/04_model_input/rdex_prediction_dataset.pkl"
+  sst_dataset_no_tf_path: "data/04_model_input/rdex_prediction_dataset_no_tf.pkl"
+  sst_contrast_dataset_path: "data/04_model_input/rdex_prediction_contrasts_dataset.pkl"
+  nback_dataset_path: "data/04_model_input/rdex_prediction_nback_dataset.pkl"
+  sst_nback_dataset_path: "data/04_model_input/eea_prediction_sst_nback_dataset.pkl"
+  roi_dataset_path: "data/04_model_input/rdex_prediction_roi_dataset.pkl"
+  roi_dataset_no_tf_path: "data/04_model_input/rdex_prediction_roi_dataset_no_tf.pkl"
+
+  # Scopes paths
+  sst_scopes_path: "data/04_model_input/rdex_prediction_scopes_sst.pkl"
+  sst_contrast_scopes_path: "data/04_model_input/rdex_prediction_scopes_sst_contrasts.pkl"
+  nback_scopes_path: "data/04_model_input/rdex_prediction_scopes_nback.pkl"
+  roi_scopes_path: "data/04_model_input/rdex_prediction_roi_scopes.pkl"
+
+  # Results and plotting
+  results_path: "data/05_model_output"
+  plot_output_dir: "results/plots/rdex_prediction"
+
+  # Model parameters
+  models: ["ridge", "lasso", "elastic"]
+  conditions: ["all", "correct_go", "correct_stop", "incorrect_go", "incorrect_stop"]
+  targets: ["beta", "gamma", "tau", "v", "a", "t0"]
+
+  # Plotting configuration
+  plotting:
+    produce_fis_plots: true
+    roi_mode: false
+    figure_format: "png"
+    dpi: 300
+
+# Phenotype prediction configuration
+phenotype_prediction:
+  # Data paths
+  phenotype_data_path: "data/03_primary/phenotype_data.csv"
+  rdex_parameters_path: "data/03_primary/rdex_parameters.csv"
+
+  # Results
+  results_path: "data/05_model_output/phenotype_prediction"
+  plot_output_dir: "results/plots/phenotype_prediction"
+
+  # Target phenotypes
+  phenotypes:
+    - "nihtbx_totalcomp_agecorrected"
+    - "cbcl_scr_syn_internal_t"
+    - "cbcl_scr_syn_external_t"
+    - "upps_y_ss_negative_urgency"
+    - "upps_y_ss_positive_urgency"
+    - "bis_y_ss_bis_sum"
+    - "bas_y_ss_bas_drive"
+    - "bas_y_ss_bas_fun_seeking"
+    - "bas_y_ss_bas_reward_responsiveness"
+
+# Processing parameters
+processing:
+  n_cores: -1  # Use all available cores
+  random_state: 42
+  test_size: 0.2
+  cv_folds: 5
+
+# Visualization parameters
+visualization:
+  color_maps:
+    brain: "bwr"
+    stats: "viridis"
+    correlation: "RdBu_r"
+
+  figure_size:
+    default: [8, 6]
+    brain: [12, 8]
+    collage: [16, 12]
+
+  font_sizes:
+    title: 16
+    labels: 12
+    ticks: 10
+    annotations: 8
