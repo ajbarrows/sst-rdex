@@ -12,9 +12,7 @@ from abcd_tools.utils.ConfigLoader import load_yaml
 from rdex_plotting_functions import (
     relabel_plotting_data,
     sort,
-    make_effect_compare_plot,
     produce_effectsize_plot,
-    produce_supplement_plots,
 )
 
 
@@ -284,22 +282,23 @@ def load_vertexwise_model_summaries(params):
 def main():
 
     params = load_yaml("../parameters.yaml")
-    model_res_path = params["model_results_path"]
+    params["model_results_path"]
 
-    assemble_feature_importance(model_res_path, params)
+    # assemble_feature_importance(model_res_path, params)
 
-    produce_supplement_plots(params)
+    # produce_supplement_plots(params)
 
     produce_effectsize_plot(params, model="vertex_ridge")
 
-    model = "vertex_ridge_lasso"
-    summary = load_vertexwise_model_summaries(params)
-    make_effect_compare_plot(
-        summary,
-        model,
-        params["effectsize_plot_title"],
-        params["plot_output_path"] + f"{model}_effectsize_plot",
-    )
+    # reviewer response
+    # model = "vertex_ridge_lasso"
+    # summary = load_vertexwise_model_summaries(params)
+    # make_effect_compare_plot(
+    #     summary,
+    #     model,
+    #     params["effectsize_plot_title"],
+    #     params["plot_output_path"] + f"{model}_effectsize_plot",
+    # )
 
 
 if __name__ == "__main__":

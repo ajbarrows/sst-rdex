@@ -31,6 +31,7 @@ def fit(
     # deal with inf values that sneak in
     ds = ds.replace([np.inf, -np.inf], np.nan).dropna()
 
+    print(list(ds["target"]))
     res = fit_model(
         ds, scopes, model, complete=complete, n_cores=n_cores, random_state=random_state
     )

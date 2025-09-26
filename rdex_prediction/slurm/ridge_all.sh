@@ -3,11 +3,11 @@
 #SBATCH --output=logs/%x_%j.out
 #SBATCH --error=logs/%x_%j.err
 #SBATCH --time=48:00:00
-#SBATCH --partition=week
+#SBATCH --partition=general
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=8
-#SBATCH --mem=512G
-#SBATCH --mail-type=ALL
+#SBATCH --mem=128G
+#SBATCH --mail-type=END
 
 echo "Submission Dir:  ${SLURM_SUBMIT_DIR}"
 echo "Running host:    ${SLURMD_NODENAME}"

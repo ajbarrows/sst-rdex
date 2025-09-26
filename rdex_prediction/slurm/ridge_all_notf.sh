@@ -6,8 +6,9 @@
 #SBATCH --partition=week
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=8
-#SBATCH --mem=512G
+#SBATCH --mem=128G
 #SBATCH --mail-type=ALL
+#SBATCH --mail-user=ajbarrow@uvm.edu
 
 echo "Submission Dir:  ${SLURM_SUBMIT_DIR}"
 echo "Running host:    ${SLURMD_NODENAME}"

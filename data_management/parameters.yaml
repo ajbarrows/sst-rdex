@@ -16,6 +16,7 @@ filtered_behavioral_path_nback: "../../data/03_primary/filtered_behavioral_nback
 beh_rt_vars: {
     'tfmri_sst_all_beh_crgo_mrt': 'correct_go_mrt',
     'tfmri_sst_all_beh_crgo_stdrt': 'correct_go_stdrt',
+    'tfmri_sst_all_beh_crgo_rt': 'correct_go_prop',
     'tfmri_sst_all_beh_total_issrt': 'issrt'
 }
 

@@ -127,7 +127,7 @@ def make_bpt_dataset(
     mri_confounds: pd.DataFrame,
     targets: pd.DataFrame,
     test_split=0.2,
-    random_state=42,
+    random_state=123,
     fpath: str = None,
 ) -> bp.Dataset:
     """Create a BPt dataset from betas, confounds, and targets.
@@ -138,7 +138,7 @@ def make_bpt_dataset(
         mri_confounds (pd.DataFrame): MRI confounds.
         targets (pd.DataFrame): Behavioral targets.
         test_split (float, optional): Test split. Defaults to 0.2.
-        random_state (int, optional): Random state. Defaults to 42.
+        random_state (int, optional): Random state. Defaults to 123.
         fpath (str, optional): Path to save dataset. Defaults to None.
 
     Returns:
@@ -182,7 +182,7 @@ def main():
     mri_confounds_sst = load_tabular(params["mri_confounds_sst_path"])
     mri_confounds_nback = load_tabular(params["mri_confounds_nback_path"])
 
-    gather_scopes(sst_betas, mri_confounds_sst, params["sst_scopes_path"])
+    sst_scopes = gather_scopes(sst_betas, mri_confounds_sst, params["sst_scopes_path"])
     gather_scopes(nback_betas, mri_confounds_nback, params["nback_scopes_path"])
 
     sst_contrast_scopes = gather_scopes(
@@ -190,24 +190,24 @@ def main():
     )
 
     targets = load_tabular(params["targets_path"])
-    load_tabular(params["targets_no_tf_path"])
+    targets_no_tf = load_tabular(params["targets_no_tf_path"])
     load_tabular(params["nback_targets_path"])
 
-    # make_bpt_dataset(
-    #     sst_betas,
-    #     sst_scopes,
-    #     mri_confounds_sst,
-    #     targets,
-    #     fpath=params["sst_dataset_path"],
-    # )
+    make_bpt_dataset(
+        sst_betas,
+        sst_scopes,
+        mri_confounds_sst,
+        targets,
+        fpath=params["sst_dataset_path"],
+    )
 
-    # make_bpt_dataset(
-    #     sst_betas,
-    #     sst_scopes,
-    #     mri_confounds_sst,
-    #     targets_no_tf,
-    #     fpath=params["sst_dataset_no_tf_path"],
-    # )
+    make_bpt_dataset(
+        sst_betas,
+        sst_scopes,
+        mri_confounds_sst,
+        targets_no_tf,
+        fpath=params["sst_dataset_no_tf_path"],
+    )
 
     # make_bpt_dataset(
     #     nback_betas,

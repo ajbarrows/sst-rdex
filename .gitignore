@@ -1,6 +1,7 @@
 # ignore HPC shell scripts
 *.sh
 
+.rsyncignore
 
 # ignore everything in the following folders
 data/**
