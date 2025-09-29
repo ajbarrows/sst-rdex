@@ -8,6 +8,7 @@
 #SBATCH --cpus-per-task=4
 #SBATCH --mem=128G
 #SBATCH --mail-type=ALL
+#SBATCH --mail-user=ajbarrow@uvm.edu
 
 echo "Submission Dir:  ${SLURM_SUBMIT_DIR}"
 echo "Running host:    ${SLURMD_NODENAME}"
