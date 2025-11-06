@@ -36,6 +36,7 @@ def relabel_plotting_data(df, process_map, target_map, color_map):
     Returns:
         pd.DataFrame: Relabeled dataframe
     """
+    df = df.drop_duplicates(subset="target")
 
     df["scope"] = df["scope"].fillna("all")
     df = df[df["scope"] != "cov + mri_confounds"]
@@ -173,13 +174,14 @@ def make_paper_effectsize_plot(df, params):
     target_map = params["target_map"]
     params["color_map"]
 
+    print(df)
     go_targets = [target_map[k] for k, v in process_map.items() if v == "Go Process"]
     stop_targets = [
         target_map[k] for k, v in process_map.items() if v == "Stop Process"
     ]
     ssrt_targets = [target_map[k] for k, v in process_map.items() if v == "SSRT"]
 
-    empirical_keys = ["correct_go_mrt", "correct_go_stdrt", "issrt"]
+    empirical_keys = ["correct_go_mrt", "correct_go_stdrt", "correct_go_prop", "issrt"]
     empirical = [target_map[k] for k in empirical_keys]
 
     sns.set_context("paper", font_scale=1.75)
@@ -446,6 +448,7 @@ def map_destrieux(
                 prefix=prefix,
                 suffix=".lh",
                 return_statistics=True,
+                decode_ascii=False,
             )
             rh_mapped, rh_t, rh_p = map_hemisphere(
                 rh_correct,
@@ -454,6 +457,7 @@ def map_destrieux(
                 prefix=prefix,
                 suffix=".rh",
                 return_statistics=True,
+                decode_ascii=False,
             )
 
             lh_df, rh_df = _assemble_df(
@@ -896,7 +900,7 @@ def make_paper_fis_plot(lr_collection, targets, correct, cond, behavior, params)
 
     plt.savefig(
         params["plot_output_path"] + "haufe_feature_importance.png",
-        dpi=300,
+        dpi=250,
         bbox_inches="tight",
     )
     # plt.show()
@@ -911,60 +915,6 @@ def get_global_minmax(lh, rh):
 
     abs_max = max(np.abs(vmin), np.abs(vmax))
     return -abs_max, abs_max
-
-
-def make_supplement_plot(fis, params, title, roi=False):
-
-    targets = list(fis.keys())
-
-    lr_collection = {}
-    for target in targets:
-        lr_collection[target] = broadcast_to_fsaverage(fis[target])
-
-    conditions = pd.unique(lr_collection[targets[0]][0]["condition"])
-    correct = pd.unique(lr_collection[targets[0]][0]["correct"])
-    target_map = params["target_map"]
-
-    correct_cond = list(product(correct, conditions))
-    correct_cond = [("", "")] + correct_cond + [("", "")]  # pad
-
-    n_targets = len(targets)
-
-    grid = {
-        "width_ratios": [8] + list(repeat(10, 4)) + [2],
-        "wspace": 0,
-    }
-    fig, axs = plt.subplots(n_targets, 6, figsize=(35, 4 * n_targets), gridspec_kw=grid)
-
-    cmap = "bwr"
-    fontsize = 15
-
-    mode = "vertex_parcellated" if roi else ""
-
-    for i, target in enumerate(targets):
-        lh, rh = lr_collection[target]
-
-        if roi:
-            lh, rh, vmin, vmax = map_destrieux(lh, rh)
-        else:
-            vmin, vmax = get_global_minmax(lh, rh)
-
-        ax_row = axs[i, :]
-        for (correct, condition), ax in zip(correct_cond, ax_row.flat):
-
-            if ax == ax_row[0]:
-                ax.text(0, 0.5, target_map[target], fontsize=fontsize)
-                ax.set_axis_off()
-            elif ax != ax_row[-1]:
-                lh_plt = format_for_plotting(lh, correct, condition)
-                rh_plt = format_for_plotting(rh, correct, condition)
-
-                draw_plot(
-                    lh_plt, rh_plt, ax, mode=mode, cmap=cmap, vmin=vmin, vmax=vmax
-                )
-                ax.set_title(f"{correct} {condition}".title(), fontsize=fontsize)
-            else:
-                make_colorbar(fig, ax, vmin, vmax, cmap, label="")
 
 
 def gather_fis(fis: list, compare_scopes: bool):
@@ -1071,52 +1021,10 @@ def make_fis_plots(
 def draw_supplement(mod_name, values, params):
 
     fpath = values["fpath"]
-    title = values["title"]
-    roi = values["roi"]
 
-    fis, best_fis, avg_fis, haufe_avg, haufe_fis = pd.read_pickle(fpath)
+    fis, best_fis, avg_fis, haufe_avg = pd.read_pickle(fpath)
 
-    make_supplement_plot(haufe_avg, params, title=title, roi=roi)
-
-    fname_out = f"{mod_name}_haufe_fis_supplement.png"
-    plt.savefig(params["plot_output_path"] + fname_out, dpi=300, bbox_inches="tight")
-    plt.close()
-    print(f"Saved {fname_out}")
-
-
-def produce_supplement_plots(params: dict):
-
-    fpath_ridge = params["model_results_path"] + "vertex_ridge_feature_importance.pkl"
-    fpath_lasso = params["model_results_path"] + "vertex_lasso_feature_importance.pkl"
-    (params["model_results_path"] + "all_vertex_contrasts_ridge_feature_importance.pkl")
-
-    plot_names = {
-        "ridge": {
-            "fpath": fpath_ridge,
-            "title": "Ridge Regression Feature Importance",
-            "roi": False,
-        },
-        "ridge_roi": {
-            "fpath": fpath_ridge,
-            "title": "Ridge Regression Feature Importance (Destrieux)",
-            "roi": True,
-        },
-        "lasso": {
-            "fpath": fpath_lasso,
-            "title": "Lasso Regression Feature Importance",
-            "roi": False,
-        },
-        "lasso_roi": {
-            "fpath": fpath_lasso,
-            "title": "Lasso Regression Feature Importance (Destrieux)",
-            "roi": True,
-        },
-    }
-
-    Parallel(n_jobs=4)(
-        delayed(draw_supplement)(mod_name, values, params)
-        for mod_name, values in plot_names.items()
-    )
+    make_fis_plots(avg_fis, best_fis, haufe_avg, params["target_map"], model="ridge")
 
 
 def produce_fis_plot(params: dict, haufe_avg: dict):
@@ -1158,15 +1066,17 @@ def produce_plots(params: dict, model: str, compare_scopes=False):
         model (str): Model.
     """
 
-    params["process_map"]
-    params["target_map"]
-    params["color_map"]
-
-    fis, best_fis, avg_fis, haufe_avg, haufe_fis = pd.read_pickle(
+    fis, best_fis, avg_fis, haufe_avg = pd.read_pickle(
         params["model_results_path"] + f"{model}_feature_importance.pkl"
     )
 
-    produce_fis_plot(params, haufe_avg)
+    if model == "ridge":
+        # paper
+        produce_fis_plot(params, haufe_avg)
+        produce_effectsize_plot(params, model="ridge")
+
+    # supplement (TODO rename?)
+    make_fis_plots(avg_fis, best_fis, haufe_avg, params["target_map"], model=model)
 
     # effect compare
 
@@ -1178,10 +1088,3 @@ def produce_plots(params: dict, model: str, compare_scopes=False):
     #     best_fis, avg_fis = gather_fis(fis, compare_scopes=compare_scopes)
 
     #     make_fis_plots(avg_fis, best_fis, target_map, model=model)
-
-    # else:
-    #     fis, best_fis, avg_fis, haufe_avg, haufe_fis = pd.read_pickle(
-    #         params["model_results_path"] + f"{model}_feature_importance.pkl"
-    #     )
-
-    #     make_fis_plots(avg_fis, best_fis, haufe_avg, target_map, model=model)

@@ -9,12 +9,7 @@ from joblib import Parallel, delayed
 import BPt as bp
 from abcd_tools.utils.ConfigLoader import load_yaml
 
-from rdex_plotting_functions import (
-    relabel_plotting_data,
-    sort,
-    produce_effectsize_plot,
-    produce_supplement_plots,
-)
+from rdex_plotting_functions import relabel_plotting_data, sort, produce_plots
 
 
 def join_test_prediction(
@@ -121,47 +116,24 @@ def remove_nonfeatures(
     return coefs[~coefs.index.str.contains("|".join(filter_strings))]
 
 
-def haufe_transform(model_weights, X, batch_size=1000):
-    """
-    Memory-efficient Haufe transformation with corrected sign.
-    Simply negate the result of the original implementation.
+def haufe_transform(X, y_pred, chunk_size=10000):
+    """Ultra-fast chunked version for huge feature matrices"""
+    n = len(X)
+    X_mean = X.mean(axis=0)
+    y_mean = y_pred.mean()
+    y_centered = y_pred - y_mean
 
-    Parameters:
-    -----------
-    model_weights : array-like, shape (n_features,)
-        Weight vector from a linear model
-    X : array-like, shape (n_samples, n_features)
-        Feature matrix used to train the model
-    batch_size : int, default=1000
-        Size of batches to process at once
+    if chunk_size >= n:
+        X_centered = X - X_mean
+        return (X_centered.T @ y_centered) / len(X)
+    else:
+        result = np.zeros(X.shape[1])
+        for i in range(0, X.shape[1], chunk_size):
+            end = min(i + chunk_size, X.shape[1])
+            X_chunk = X[:, i:end] - X_mean[i:end]
+            result[i:end] = X_chunk.T @ y_centered
 
-    Returns:
-    --------
-    activation_patterns : array, shape (n_features,)
-        Transformed weights with correct sign
-    """
-    X = np.asarray(X)
-    model_weights = np.asarray(model_weights).flatten()
-    n_samples, n_features = X.shape
-
-    # Compute means
-    means = np.mean(X, axis=0)
-
-    # Compute using original implementation
-    activation_patterns = np.zeros(n_features)
-
-    for i in range(0, n_samples, batch_size):
-        batch = X[i : min(i + batch_size, n_samples)]
-        centered_batch = batch - means
-        activation_patterns += np.dot(
-            centered_batch.T, np.dot(centered_batch, model_weights)
-        )
-
-    # Normalize by n_samples - 1
-    activation_patterns /= n_samples - 1
-
-    # FIX: Negate the result to correct the sign
-    return -activation_patterns  # Simply negate the result
+        return result / n
 
 
 def get_feature_importance(
@@ -181,15 +153,20 @@ def get_feature_importance(
     best_fis = {}
     avg_fis = {}
     haufe_avg = {}
-    haufe_fis = {}
 
     if isinstance(results, str):
         results = pd.read_pickle(results)
 
+    def get_training_set(model):
+        X, _ = model._dataset.get_Xy()
+        train_subjects = model.train_subjects
+
+        # return X.loc[train_subjects]
+        return [X.loc[split] for split in train_subjects]
+        # return train_subjects
+
     # get dataset from single model
-    m = results["EEA"]
-    X, _ = m._dataset.get_Xy()
-    train_subjects = m.train_subjects
+    X_train_splits = get_training_set(results["EEA"])
 
     for la, m in results.items():
 
@@ -218,23 +195,18 @@ def get_feature_importance(
             best_coefs = remove_nonfeatures(best_coefs)
             best_fis[target] = best_coefs
 
-            # get Haufe-transformed features
+            haufe_fis = []
+            for i, split in enumerate(X_train_splits):
+                est = m.estimators[i]
+                y_pred = est.predict(split)
 
-            haufe_features = pd.Series(dtype="float64")
+                haufe_fis.append(
+                    haufe_transform(split, y_pred).pipe(remove_nonfeatures)
+                )
 
-            drop_cols = ["mri_info_deviceserialnumber", "iqc_sst_all_mean_motion"]
-            for fold_idx in range(len(coefs)):
-                features = remove_nonfeatures(coefs.iloc[fold_idx])
-                tmp = X[X.index.isin(train_subjects[fold_idx])]
-                tmp = tmp.drop(columns=drop_cols)
-                haufe = pd.Series(haufe_transform(features, tmp), index=tmp.columns)
-                haufe_features = pd.concat([haufe_features, haufe], axis=1)
+            haufe_avg[target] = pd.concat(haufe_fis, axis=1).mean(axis=1)
 
-            haufe_mean = haufe_features.mean(axis=1)
-            haufe_avg[target] = haufe_mean
-            haufe_fis[target] = haufe_features
-
-    return fis, best_fis, avg_fis, haufe_avg, haufe_fis
+    return fis, best_fis, avg_fis, haufe_avg
 
 
 def assemble_feature_importance(
@@ -242,19 +214,14 @@ def assemble_feature_importance(
 ) -> None:
     """Implement gather_feature_importance."""
 
-    results_paths = glob.glob(params["model_results_path"] + f"*{model}_results.pkl")
+    results_paths = glob.glob(
+        params["model_results_path"] + f"all_vertex_{model}_results.pkl"
+    )
 
-    # results_paths = [path for path in results_paths if "all" not in path]
-
-    if len(results_paths) > 1:
-        res = Parallel(n_jobs=n_jobs)(
-            delayed(get_feature_importance)(r) for r in results_paths
-        )
-    else:
-        res = get_feature_importance(results_paths[0])
+    res = get_feature_importance(results_paths[0])
 
     pd.to_pickle(res, fpath + f"{model}_feature_importance.pkl")
-    print(f"Feature importance saved to {fpath}")
+    print(f"Feature importance saved to {fpath} + {model}_feature_importance.pkl")
 
 
 def load_vertexwise_model_summaries(params):
@@ -285,13 +252,12 @@ def main():
     params = load_yaml("../parameters.yaml")
     model_res_path = params["model_results_path"]
 
-    assemble_summary(model_res_path, params)
+    assemble_summary(model_res_path, params, model="contrasts_ridge")
 
-    assemble_feature_importance(model_res_path, params)
+    for model in ["lasso", "ridge", "contrasts_ridge"]:
 
-    produce_supplement_plots(params)
-
-    produce_effectsize_plot(params, model="vertex_ridge")
+        assemble_feature_importance(model_res_path, params, model=model)
+        produce_plots(params, model=model)
 
     # reviewer response
     # model = "vertex_ridge_lasso"

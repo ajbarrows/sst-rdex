@@ -51,7 +51,7 @@ process_map: {
     'tau':'Stop Process',
     'SSRT':'SSRT',
     'issrt':'SSRT',
-    # 'correct_go_rt':'Go Process',
+    'correct_go_prop':'Go Process',
     'correct_go_mrt':'Go Process',
     'correct_go_stdrt':'Go Process'
 }
@@ -77,13 +77,13 @@ target_map: {
     'tau':'Stop ExGaussian exponential mean ($\tau$)',
     'SSRT':'Model derived SSRT',
     'issrt':'Empirical SSRT',
-    # 'correct_go_rt':'Go choice accuracy',
+    'correct_go_prop':'Go choice accuracy',
     'correct_go_mrt':'Correct-Go response time (RT)',
     'correct_go_stdrt':'Correct-Go RT variability',
     'correct_go': 'Correct Go',
     'incorrect_go': 'Incorrect Go',
     'correct_stop': 'Correct Stop',
-    'incorrect_stop': 'Incorrect Stop'
+    'incorrect_stop': 'Incorrect Stop',
 }
 
 effectsize_plot_title: 'Vertexwise Regressor Model Fit Comparison'
