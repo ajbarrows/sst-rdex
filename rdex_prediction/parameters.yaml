@@ -86,4 +86,13 @@ target_map: {
     'incorrect_stop': 'Incorrect Stop',
 }
 
+fis_plot_map: {
+    'EEA':'Efficiency of\nevidence acc. (EEA)',
+    'tf':'Probability of\ntrigger failure ($p_{tf}$)',
+    'correctstop': 'Cor. Stop vs. ',
+    'correctgo': 'Cor. Go',
+    'incorrectstop': "Incor. Stop vs. ",
+    'incorrectgo': "Incor. Go"
+}
+
 effectsize_plot_title: 'Vertexwise Regressor Model Fit Comparison'

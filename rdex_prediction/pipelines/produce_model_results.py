@@ -250,13 +250,14 @@ def load_vertexwise_model_summaries(params):
 def main():
 
     params = load_yaml("../parameters.yaml")
-    model_res_path = params["model_results_path"]
+    params["model_results_path"]
 
-    assemble_summary(model_res_path, params, model="contrasts_ridge")
+    # assemble_summary(model_res_path, params, model="contrasts_ridge")
 
-    for model in ["lasso", "ridge", "contrasts_ridge"]:
+    # for model in ["lasso", "ridge", "contrasts_ridge"]:
+    for model in ["contrasts_ridge"]:
 
-        assemble_feature_importance(model_res_path, params, model=model)
+        # assemble_feature_importance(model_res_path, params, model=model)
         produce_plots(params, model=model)
 
     # reviewer response

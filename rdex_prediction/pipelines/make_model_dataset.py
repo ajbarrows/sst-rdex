@@ -152,7 +152,8 @@ def make_bpt_dataset(
 
     scopes["covariates"] = mri_confounds.columns.tolist()
     for k, v in scopes.items():
-        dataset.add_scope(v, k, inplace=True)
+        # dataset.add_scope(v, k, inplace=True)
+        dataset = dataset.add_scope(v, k, inplace=False)
 
     dataset = dataset.auto_detect_categorical()
     dataset = dataset.add_scope("mri_info_deviceserialnumber", "category")
@@ -174,40 +175,45 @@ def make_bpt_dataset(
 def main():
     params = load_yaml("../parameters.yaml")
 
-    sst_betas = load_betas(params["sst_betas_path"])
-    nback_betas = load_betas(params["nback_betas_path"])
+    # sst_betas = load_betas(params["sst_betas_path"])
+    # nback_betas = load_betas(params["nback_betas_path"])
 
     sst_contrasts = load_contrasts(params)
 
     mri_confounds_sst = load_tabular(params["mri_confounds_sst_path"])
-    mri_confounds_nback = load_tabular(params["mri_confounds_nback_path"])
+    # mri_confounds_nback = load_tabular(params["mri_confounds_nback_path"])
 
-    sst_scopes = gather_scopes(sst_betas, mri_confounds_sst, params["sst_scopes_path"])
-    gather_scopes(nback_betas, mri_confounds_nback, params["nback_scopes_path"])
+    # sst_scopes = gather_scopes(sst_betas,
+    #     mri_confounds_sst, params["sst_scopes_path"])
+    # nback_scopes = gather_scopes(nback_betas,
+    #     mri_confounds_nback, params["nback_scopes_path"])
 
-    sst_contrast_scopes = gather_scopes(
-        sst_contrasts, mri_confounds_sst, params["sst_contrast_scopes_path"]
-    )
+    # sst_contrast_scopes = gather_scopes(
+    #     sst_contrasts, mri_confounds_sst, params["sst_contrast_scopes_path"]
+    # )
 
-    targets = load_tabular(params["targets_path"])
+    sst_scopes = pd.read_pickle(params["sst_scopes_path"])
+    sst_contrast_scopes = pd.read_pickle(params["sst_contrast_scopes_path"])
+
+    # targets = load_tabular(params["targets_path"])
     targets_no_tf = load_tabular(params["targets_no_tf_path"])
-    load_tabular(params["nback_targets_path"])
+    targets_nback = load_tabular(params["nback_targets_path"])
 
-    make_bpt_dataset(
-        sst_betas,
-        sst_scopes,
-        mri_confounds_sst,
-        targets,
-        fpath=params["sst_dataset_path"],
-    )
+    # make_bpt_dataset(
+    #     sst_betas,
+    #     sst_scopes,
+    #     mri_confounds_sst,
+    #     targets,
+    #     fpath=params["sst_dataset_path"],
+    # )
 
-    make_bpt_dataset(
-        sst_betas,
-        sst_scopes,
-        mri_confounds_sst,
-        targets_no_tf,
-        fpath=params["sst_dataset_no_tf_path"],
-    )
+    # make_bpt_dataset(
+    #     sst_betas,
+    #     sst_scopes,
+    #     mri_confounds_sst,
+    #     targets_no_tf,
+    #     fpath=params["sst_dataset_no_tf_path"],
+    # )
 
     # make_bpt_dataset(
     #     nback_betas,
@@ -217,6 +223,22 @@ def main():
     #     fpath=params["nback_dataset_path"],
     # )
 
+    make_bpt_dataset(
+        sst_contrasts,
+        sst_contrast_scopes,
+        mri_confounds_sst,
+        targets_nback,
+        fpath=params["sst_nback_dataset_path"],
+    )
+
+    make_bpt_dataset(
+        sst_contrasts,
+        sst_scopes,
+        mri_confounds_sst,
+        targets_no_tf,
+        fpath=params["sst_dataset_no_tf_path"],
+    )
+
     # make_bpt_dataset(
     #     sst_betas,
     #     sst_scopes,
@@ -225,13 +247,13 @@ def main():
     #     fpath=params["sst_nback_dataset_path"],
     # )
 
-    make_bpt_dataset(
-        sst_contrasts,
-        sst_contrast_scopes,
-        mri_confounds_sst,
-        targets,
-        fpath=params["sst_contrast_dataset_path"],
-    )
+    # make_bpt_dataset(
+    #     sst_contrasts,
+    #     sst_contrast_scopes,
+    #     mri_confounds_sst,
+    #     targets,
+    #     fpath=params["sst_contrast_dataset_path"],
+    # )
 
 
 if __name__ == "__main__":

@@ -18,9 +18,7 @@ from nilearn.datasets import fetch_atlas_surf_destrieux
 
 from neurotools.plotting.ref import SurfRef
 
-from abcd_tools.image.preprocess import map_hemisphere
-
-from scipy.stats import false_discovery_control, pearsonr
+from scipy.stats import pearsonr, ttest_1samp
 from itertools import product
 
 
@@ -380,13 +378,87 @@ def load_destrieux_atlas():
     return atlas
 
 
+def compute_tstat(mapping: dict) -> dict:
+    """Compute t-statistics.
+
+    Args:
+        lh_mapping (pd.DataFrame): Left hemisphere mapping.
+
+    Returns:
+        dict: T-statistics.
+    """
+
+    t_values = {}
+    p_values = {}
+
+    for roi, vertex in mapping.items():
+        t, p = ttest_1samp(vertex, 0, axis=0, nan_policy="omit")
+        t_values[roi] = t
+        p_values[roi] = p
+
+    return t_values, p_values
+
+
+def map_hemisphere(
+    vertices: pd.DataFrame,
+    mapping: np.array,
+    labels: list,
+    prefix: str = None,
+    suffix: str = None,
+    decode_ascii: bool = True,
+) -> pd.DataFrame:
+    """Map tabular vertexwise fMRI values to ROIs using nonzero average aggregation.
+
+    Args:
+        vertices (pd.DataFrame): Tabular vertexwise data (columns are vertices).
+        mapping (np.array): Array of ROI indices. Must be the same length as `vertices`.
+        labels (list): ROI labels for resulting averaged values.
+        prefix (str, optional): Prefix added to all column names. Defaults to None.
+        suffix (str, optional): Suffix added to all column names. Defaults to None.
+
+    Returns:
+        pd.DataFrame: Nonzero-averaged ROIs.
+    """
+
+    if prefix is None:
+        prefix = ""
+    if suffix is None:
+        suffix = ""
+
+    avg_dict = {}
+
+    if isinstance(vertices, pd.DataFrame):
+        vertices = vertices.values
+
+    for idx in np.unique(mapping):
+        indices = np.where(mapping == idx)[0]
+
+        roi_values = vertices[:, indices]
+        roi_values[roi_values == 0] = np.nan
+        avg_dict[idx] = np.nanmean(roi_values)
+
+    # Assemble dataframe
+    df = pd.DataFrame(avg_dict, index=[0])
+    df = df.reindex(sorted(df.columns), axis=1)
+
+    # Map ROI indices to label names
+    roi_labels = {}
+    for roi_idx in df.columns:
+        if roi_idx < len(labels):
+            label = labels[roi_idx]
+            if isinstance(label, bytes):
+                label = label.decode()
+            roi_labels[roi_idx] = prefix + str(label) + suffix
+
+    df = df.rename(columns=roi_labels)
+
+    return df
+
+
 def map_destrieux(
     lh: pd.DataFrame,
     rh: pd.DataFrame,
     prefix: str = "",
-    mask_non_significant=False,
-    use_fdr=False,
-    alpha=0.01,
 ) -> pd.DataFrame:
     """Map Destrieux atlas.
 
@@ -409,81 +481,46 @@ def map_destrieux(
     lh_df = pd.DataFrame()
     rh_df = pd.DataFrame()
 
-    lh_tvalues = pd.DataFrame()
-    rh_tvalues = pd.DataFrame()
-
-    lh_pvalues = pd.DataFrame()
-    rh_pvalues = pd.DataFrame()
-
-    def _assemble_df(lh_mapped, rh_mapped, lh_correct, rh_correct, lh, rh):
-        lh_mapped.index = lh_correct.index
-        rh_mapped.index = rh_correct.index
-
-        lh_tmp = pd.concat([lh, lh_mapped])
-        rh_tmp = pd.concat([rh, rh_mapped])
-
-        return lh_tmp, rh_tmp
-
-    def apply_fdr(pvalues):
-        return pd.DataFrame(
-            false_discovery_control(pvalues, method="by"),
-            index=pvalues.index,
-            columns=pvalues.columns,
-        )
-
     for correct in correct_values:
-
         for condition in condition_values:
 
             lh_correct = lh[(lh["correct"] == correct) & (lh["condition"] == condition)]
             rh_correct = rh[(rh["correct"] == correct) & (rh["condition"] == condition)]
 
+            # Skip if no data for this combination
+            if len(lh_correct) == 0 or len(rh_correct) == 0:
+                continue
+
             lh_correct = lh_correct.set_index(idx)
             rh_correct = rh_correct.set_index(idx)
 
-            lh_mapped, lh_t, lh_p = map_hemisphere(
+            lh_mapped = map_hemisphere(
                 lh_correct,
                 mapping=dest["map_left"],
                 labels=dest["labels"],
                 prefix=prefix,
                 suffix=".lh",
-                return_statistics=True,
                 decode_ascii=False,
             )
-            rh_mapped, rh_t, rh_p = map_hemisphere(
+            rh_mapped = map_hemisphere(
                 rh_correct,
                 mapping=dest["map_right"],
                 labels=dest["labels"],
                 prefix=prefix,
                 suffix=".rh",
-                return_statistics=True,
                 decode_ascii=False,
             )
 
-            lh_df, rh_df = _assemble_df(
-                lh_mapped, rh_mapped, lh_correct, rh_correct, lh_df, rh_df
-            )
-            lh_tvalues, rh_tvalues = _assemble_df(
-                lh_t, rh_t, lh_correct, rh_correct, lh_tvalues, rh_tvalues
-            )
-            lh_pvalues, rh_pvalues = _assemble_df(
-                lh_p, rh_p, lh_correct, rh_correct, lh_pvalues, rh_pvalues
-            )
+            lh_mapped.index = lh_correct.index
+            rh_mapped.index = rh_correct.index
 
-    if use_fdr:
-        lh_pvalues = apply_fdr(lh_pvalues)
-        rh_pvalues = apply_fdr(rh_pvalues)
-
-    if mask_non_significant:
-        lh_tvalues = lh_tvalues.mask(lh_pvalues > alpha)
-        rh_tvalues = rh_tvalues.mask(rh_pvalues > alpha)
+            lh_df = pd.concat([lh_df, lh_mapped])
+            rh_df = pd.concat([rh_df, rh_mapped])
 
     df = pd.concat([lh_df, rh_df], axis=1)
     vmin, vmax = get_fullrang_minmax(df)
 
     return lh_df.reset_index(), rh_df.reset_index(), vmin, vmax
-    # return lh_df, rh_df, lh_tvalues, rh_tvalues, lh_pvalues, rh_pvalues, vmin, vmax
-    # return lh_tvalues.reset_index(), rh_tvalues.reset_index(), vmin, vmax
 
 
 def absmax(x):
@@ -607,33 +644,37 @@ def make_collage_plot(
     fis_agg: dict,
     target,
     target_map,
+    cond,
+    params=None,
     basepath="../../data/06_reporting/rdex_prediction/fis_plots",
     agg="avg_fis",
     mode="vertex",
     model="enet",
     fontsize=25,
 ):
+    """Make collage plot with condition tuples.
+
+    Args:
+        fis_agg (dict): Feature importance aggregated data.
+        target: Target variable.
+        target_map (dict): Mapping for target labels.
+        cond (list): List of tuples (correct, condition) to plot.
+        params (dict, optional): Parameters dict containing fis_plot_map.
+        basepath (str): Base path for saving plots.
+        agg (str): Aggregation type.
+        mode (str): Plot mode.
+        model (str): Model type.
+        fontsize (int): Font size for labels.
+    """
 
     if "roi" not in model:
         lh, rh = broadcast_to_fsaverage(fis_agg[target])
-        conditions = pd.unique(lh["condition"])
-        n_cond = conditions.shape[0]
-    else:
-        conditions = ["go", "stop"]
-        n_cond = len(conditions)
 
-    directions = ["correct", "", "incorrect"]
-    width_ratios = [1]
-    height_ratios = [100, 1, 100]
-
-    col_ratios = list(repeat(10, n_cond))
-
-    width_ratios.extend(col_ratios)
-    width_ratios.extend([2])  # colorbar
+    # Fixed layout: 2 rows x 4 columns (label, 2 plots, colorbar)
+    width_ratios = [1, 10, 10, 2]  # label, plot1, plot2, colorbar
 
     gs = {
         "width_ratios": width_ratios,
-        "height_ratios": height_ratios,
         "hspace": 0,
         "wspace": 0,
     }
@@ -642,15 +683,11 @@ def make_collage_plot(
     nb_ticks = 5
     cbar_tick_format = "%.2g"
 
-    fig, axs = plt.subplots(3, n_cond + 1 + 1, figsize=(35, 20), gridspec_kw=gs)
+    fig, axs = plt.subplots(2, 4, figsize=(35, 20), gridspec_kw=gs)
 
-    for i, direction in enumerate(directions):
-        ax = axs[i, 0]
-        ax.set_axis_off()
-        if i == 1:
-            continue
-        else:
-            ax.text(0, 0.5, direction, fontsize=fontsize)
+    # Turn off label column axes (first column)
+    for row in range(2):
+        axs[row, 0].set_axis_off()
 
     if mode == "vertex_parcellated":
         lh, rh, vmin, vmax = map_destrieux(lh, rh)
@@ -659,44 +696,40 @@ def make_collage_plot(
         vmin, vmax = get_fullrang_minmax(fis_agg[target])
         label = "Feature Importance"
 
-    cnt = 1
-    for condition in conditions:
-        top = axs[0, cnt]
-        middle = axs[1, cnt]
-        bottom = axs[2, cnt]
+    # Plot each condition tuple in 2x2 grid
+    for i, (correct, condition) in enumerate(cond):
+        row = i // 2  # 0, 0, 1, 1 for i = 0, 1, 2, 3
+        col = (i % 2) + 1  # 1, 2, 1, 2 for i = 0, 1, 2, 3
+        ax = axs[row, col]
 
         if mode == "roi_model":
-            correct = format_rois(fis_agg[target], "correct", condition)
-            make_roi_model_plot(correct, target, top, vmin, vmax)
-
-            incorrect = format_rois(fis_agg[target], "incorrect", condition)
-            make_roi_model_plot(incorrect, target, bottom, vmin, vmax)
-
+            plot_data = format_rois(fis_agg[target], correct, condition)
+            make_roi_model_plot(plot_data, target, ax, vmin, vmax)
         else:
+            lh_plot = format_for_plotting(lh, correct, condition)
+            rh_plot = format_for_plotting(rh, correct, condition)
+            draw_plot(lh_plot, rh_plot, ax, mode, vmin=vmin, vmax=vmax)
 
-            lh_correct = format_for_plotting(lh, "correct", condition)
-            rh_correct = format_for_plotting(rh, "correct", condition)
-            draw_plot(lh_correct, rh_correct, top, mode, vmin=vmin, vmax=vmax)
+        # Set title using params mapping if available
+        if params and "fis_plot_map" in params:
+            title = (
+                f"{params['fis_plot_map'][correct]} {params['fis_plot_map'][condition]}"
+            )
+        else:
+            title = f"{correct} {condition}"
+        ax.set_title(title, fontsize=fontsize)
 
-            lh_incorrect = format_for_plotting(lh, "incorrect", condition)
-            rh_incorrect = format_for_plotting(rh, "incorrect", condition)
-            draw_plot(lh_incorrect, rh_incorrect, bottom, mode, vmin=vmin, vmax=vmax)
-
-        middle.set_axis_off()  # make blank space
-        top.set_title(condition, fontsize=fontsize)
-        cnt += 1
-
-    # plot colorbar
+    # Turn off colorbar column axes and create colorbar
     norm = Normalize(vmin=vmin, vmax=vmax)
     proxy_mappable = ScalarMappable(norm=norm, cmap=cmap)
     ticks = np.linspace(vmin, vmax, nb_ticks)
 
-    right = axs[:, n_cond + 1]
-
-    for ax in right.flat:
+    # Use both colorbar axes (last column)
+    colorbar_axes = axs[:, -1]
+    for ax in colorbar_axes:
         ax.set_axis_off()
 
-    cax, kw = make_axes(right, fraction=0.5, shrink=0.5)
+    cax, kw = make_axes(colorbar_axes, fraction=0.5, shrink=0.5)
     cbar = fig.colorbar(
         proxy_mappable,
         cax=cax,
@@ -714,7 +747,7 @@ def make_collage_plot(
 
     fpath = f"{basepath}/{agg}/{mode}/{model}"
     if not os.path.exists(fpath):
-        os.makedirs(fpath)
+        os.makedirs(fpath, exist_ok=True)
 
     plt.savefig(f"{fpath}/{target}.png", dpi=300, bbox_inches="tight")
     plt.close()
@@ -767,10 +800,11 @@ def make_corplot(x, y, fontsize, xlab=None, ylab=None, color="purple", ax=None):
     ax.set_xticks([])
     ax.set_yticks([])
 
-    ax.text(0.05, 0.85, p_str, fontsize=fontsize * 0.75, transform=ax.transAxes)
+    ax.text(0.05, 0.05, p_str, fontsize=fontsize * 0.75, transform=ax.transAxes)
 
 
-def make_paper_fis_plot(lr_collection, targets, correct, cond, behavior, params):
+# def make_paper_fis_plot(lr_collection, targets, correct, cond, behavior, params):
+def make_paper_fis_plot(lr_collection, targets, cond, behavior, params):
 
     def _get_global_minmax(lr_collection, targets):
         vmin, vmax = np.inf, -np.inf
@@ -784,23 +818,16 @@ def make_paper_fis_plot(lr_collection, targets, correct, cond, behavior, params)
 
     n_targets = len(targets)
     n_cond = len(cond)
-    n_correct = len(correct)
 
     target_map = params["target_map"]
 
     nrows = n_targets + 1 + 1
-    ncols = 1 + 1 + n_cond + n_correct + 1
+    ncols = 1 + 1 + n_cond + 1
 
     fontsize = 25
 
-    correct_cond = list(product(correct, cond))
-
     grid = {
-        "width_ratios": [10]
-        + [2]
-        + list(repeat(10, n_cond))
-        + list(repeat(10, n_correct))
-        + [4],
+        "width_ratios": [10] + [2] + list(repeat(10, n_cond)) + [4],
         "height_ratios": list(repeat(25, n_targets)) + [7] + [25],
         "hspace": 0,
         "wspace": 0,
@@ -823,11 +850,16 @@ def make_paper_fis_plot(lr_collection, targets, correct, cond, behavior, params)
     for ax in axs[:, 1]:
         ax.set_axis_off()
 
-    for j, lab in enumerate(correct_cond):
+    # for j, lab in enumerate(correct_cond):
+    for j, lab in enumerate(cond):
 
         correct, condition = lab
+
         ax = axs[0, j + 2]
-        ax.set_title(f"{correct} {condition}".title(), fontsize=fontsize)
+        ax.set_title(
+            f"{params['fis_plot_map'][correct]} {params['fis_plot_map'][condition]}",
+            fontsize=fontsize,
+        )
 
         lh, rh = lr_collection[targets[0]]
         lh_plt_t1 = format_for_plotting(lh, correct, condition)
@@ -866,7 +898,8 @@ def make_paper_fis_plot(lr_collection, targets, correct, cond, behavior, params)
     proxy_mappable = ScalarMappable(norm=norm, cmap=cmap)
     ticks = np.linspace(vmin, vmax, nb_ticks)
 
-    right = axs[0:2, len(correct_cond) + 2]
+    # right = axs[0:2, len(correct_cond) + 2]
+    right = axs[0:2, len(cond) + 2]
 
     for ax in right.flat:
         ax.set_axis_off()
@@ -941,17 +974,26 @@ def gather_fis(fis: list, compare_scopes: bool):
 
 
 def plot_mode(
-    fis_agg: dict, target_map: dict, agg: str, mode: str, model: str, basepath: str
+    fis_agg: dict,
+    target_map: dict,
+    cond: list,
+    agg: str,
+    mode: str,
+    model: str,
+    basepath: str,
+    params: dict = None,
 ):
     """Plot mode.
 
     Args:
         fis_agg (dict): Feature importance.
         target_map (dict): Target map.
+        cond (list): List of tuples (correct, condition) to plot.
         agg (str): Aggregation.
         mode (str): Mode.
         model (str): Model.
-        basepath (str, optional): Base path.
+        basepath (str): Base path.
+        params (dict, optional): Parameters dict containing fis_plot_map.
     """
 
     Parallel(n_jobs=8)(
@@ -959,6 +1001,8 @@ def plot_mode(
             fis_agg,
             target,
             target_map,
+            cond,
+            params=params,
             basepath=basepath,
             agg=agg,
             mode=mode,
@@ -973,61 +1017,63 @@ def make_fis_plots(
     best_fis,
     haufe_fis,
     target_map,
+    cond,
     model="enet",
     basepath="../../data/06_reporting/rdex_prediction/fis_plots",
+    params=None,
 ):
     """Make fis plots.
 
     Args:
         avg_fis (pd.DataFrame): Avg. feature importance.
         best_fis (pd.DataFrame): Best feature importance.
+        haufe_fis (dict): Haufe-transformed feature importance.
         target_map (dict): Target map.
+        cond (list): List of tuples (correct, condition) to plot.
         model (str, optional): Model. Defaults to 'enet'.
         basepath (str, optional): Base path.
+        params (dict, optional): Parameters dict containing fis_plot_map.
     """
 
     # modes = ["vertex", "roi", "roi_model"]
     # modes = ["roi_model"]
-    modes = ["vertex", "vertex_parcellated"]
-    # modes = ["vertex_parcellated"]
+    # modes = ["vertex", "vertex_parcellated"]
+    modes = ["vertex_parcellated"]
 
     for mode in modes:
         plot_mode(
             avg_fis,
             target_map,
+            cond,
             mode=mode,
             agg="avg_fis",
             model=model,
             basepath=basepath,
+            params=params,
         )
         plot_mode(
             best_fis,
             target_map,
+            cond,
             mode=mode,
             agg="best_fis",
             model=model,
             basepath=basepath,
+            params=params,
         )
         plot_mode(
             haufe_fis,
             target_map,
+            cond,
             mode=mode,
             agg="haufe_fis",
             model=model,
             basepath=basepath,
+            params=params,
         )
 
 
-def draw_supplement(mod_name, values, params):
-
-    fpath = values["fpath"]
-
-    fis, best_fis, avg_fis, haufe_avg = pd.read_pickle(fpath)
-
-    make_fis_plots(avg_fis, best_fis, haufe_avg, params["target_map"], model="ridge")
-
-
-def produce_fis_plot(params: dict, haufe_avg: dict):
+def produce_fis_plot(params: dict, haufe_avg: dict, cond: str = "contrasts"):
     targets = ["EEA", "tf"]
     len(targets)
 
@@ -1037,10 +1083,23 @@ def produce_fis_plot(params: dict, haufe_avg: dict):
 
     behavior = pd.read_csv(params["targets_path"])
 
-    correct = ["correct", "incorrect"]
-    cond = ["go", "stop"]
+    # correct = ["correct", "incorrect"]
+    # cond = ["go", "stop"]
 
-    make_paper_fis_plot(lr_collection, targets, correct, cond, behavior, params)
+    # make_paper_fis_plot(lr_collection, targets, correct, cond, behavior, params)
+
+    if cond == "contrasts":
+
+        cond = [
+            ("correctstop", "correctgo"),
+            ("correctstop", "incorrectgo"),
+            ("incorrectstop", "correctstop"),
+            ("incorrectstop", "incorrectgo"),
+        ]
+    else:
+        cond = list(product(["correct", "incorrect"], ["go", "stop"]))
+
+    make_paper_fis_plot(lr_collection, targets, cond, behavior, params)
 
 
 def produce_effectsize_plot(params: dict, model: str):
@@ -1070,13 +1129,21 @@ def produce_plots(params: dict, model: str, compare_scopes=False):
         params["model_results_path"] + f"{model}_feature_importance.pkl"
     )
 
-    if model == "ridge":
-        # paper
-        produce_fis_plot(params, haufe_avg)
-        produce_effectsize_plot(params, model="ridge")
+    # if model == "contrasts_ridge":
+    #     # paper
+    #     produce_fis_plot(params, haufe_avg)
+    # produce_effectsize_plot(params, model=model)
 
     # supplement (TODO rename?)
-    make_fis_plots(avg_fis, best_fis, haufe_avg, params["target_map"], model=model)
+    cond = [
+        ("correctstop", "correctgo"),
+        ("correctstop", "incorrectgo"),
+        ("incorrectstop", "correctstop"),
+        ("incorrectstop", "incorrectgo"),
+    ]
+    make_fis_plots(
+        avg_fis, best_fis, haufe_avg, params["target_map"], cond, model=model
+    )
 
     # effect compare
 

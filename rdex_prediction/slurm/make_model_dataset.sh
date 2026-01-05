@@ -6,7 +6,7 @@
 #SBATCH --partition=general
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=2
-#SBATCH --mem=256G
+#SBATCH --mem=128G
 #SBATCH --mail-type=ALL
 
 

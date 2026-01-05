@@ -25,5 +25,5 @@ cd ../pipelines/
 
 python3 run_model.py ridge all \
  --dataset="../../data/04_model_input/rdex_prediction_dataset_no_tf.pkl" \
- --append="vertex_no_tf" \
+ --append="contrasts_no_tf" \
  --n_cores=$SLURM_CPUS_PER_TASK
